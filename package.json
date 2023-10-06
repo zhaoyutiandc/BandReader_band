@@ -1,0 +1,40 @@
+{
+  "name": "test1",
+  "version": "1.0.2",
+  "description": "",
+  "engines": {
+    "node": ">=8.10"
+  },
+  "scripts": {
+    "compile": "ts-node ejsSrc/index.ts",
+    "start": "aiot server --watch --open-nuttx",
+    "build": "aiot build",
+    "release": "aiot release",
+    "watch": "aiot watch --open-nuttx",
+    "send": "yarn compile && yarn release && adb connect 192.168.1.8:5555 && adb -s  192.168.1.8:5555 push .\\dist\\com.example.bandReader.release.1.0.4.rpk /sdcard/project ",
+    "lint": "eslint --format codeframe --fix --ext .ux,.js src/"
+  },
+  "devDependencies": {
+    "@aiot-toolkit/velasim": "^0.1.23",
+    "aiot-toolkit": "^1.0.18",
+    "autoprefixer": "^10.4.15",
+    "babel-eslint": "^10.0.1",
+    "eslint": "^6.8.0",
+    "eslint-plugin-ux": "^0.0.4",
+    "postcss": "^8.4.30",
+    "postcss-loader": "^7.3.3",
+    "prettier": "^3.0.3",
+    "tailwindcss": "^3.3.3",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2",
+    "ux-types": "^0.1.1"
+  },
+  "dependencies": {
+    "ejs": "^3.1.9",
+    "live-server": "^1.2.2",
+    "lodash": "^4.17.21",
+    "mitt": "^3.0.1",
+    "precss": "^4.0.0",
+    "pug": "^3.0.2"
+  }
+}

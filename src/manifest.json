@@ -1,0 +1,53 @@
+{
+  "package": "com.example.bandReader",
+  "name": "bandReader",
+  "versionName": "1.0.4",
+  "versionCode": 1,
+  "minPlatformVersion": 1000,
+  "icon": "/common/logo.png",
+  "deviceTypeList": [
+    "watch"
+  ],
+  "features": [
+    {
+      "name": "system.router"
+    },
+    { "name": "system.file" },
+    { "name": "system.interconnect" },
+    { "name": "system.prompt" },
+    { "name": "system.storage" },
+    { "name": "system.brightness" }
+
+
+  ],
+  "config": {
+    "logLevel": "off",
+    "designWidth": 480
+  },
+  "router": {
+    "entry": "pages/home",
+    "pages": {
+      "pages/home": {
+        "component": "home"
+      },
+      "pages/help": {
+        "component": "help"
+      },
+      "pages/about": {
+        "component": "about"
+      },
+      "pages/list": {
+        "component": "list"
+      },
+      "pages/read": {
+        "component": "read"
+      },
+      "pages/log": {
+        "component": "log"
+      },
+      "pages/config": {
+        "component": "config"
+      }
+    }
+  }
+}

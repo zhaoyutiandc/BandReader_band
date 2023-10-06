@@ -1,0 +1,6 @@
+<div>
+    <!--main title-->
+    <div>{{mainTitle}}</div>
+    <!--sub title-->
+    <slot></slot>
+</div>

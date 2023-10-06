@@ -1,0 +1,387 @@
+<script>
+    import interconnect from '@system.interconnect'
+    import storage from '@system.storage'
+    import file from '@system.file'
+    import prompt from '@system.prompt'
+    import mitt from 'mitt'
+    import brightness from '@system.brightness'
+
+    let counter = 0
+    export default {
+        onCreate() {
+            const that = this
+
+            this.data.emitter = mitt()
+
+            this.data.emitter.on('del_book', this.delBook)
+            this.data.emitter.on('update_book', this.updateBook)
+            // this.data.emitter.on('book_info', this.bookInfo)
+
+            console.log('app created')
+            this.loadBooks().then()
+            this.rmDir()
+            //conn
+            this.data.conn = interconnect.instance()
+            this.data.message = "conn"
+            this.data.emitter.emit("log", "conn")
+            this.data.conn.onmessage = (data) => {
+                console.log(`received message: ${data.data}`)
+                this.data.message = "conn"
+                const {type, content} = JSON.parse(data.data)
+                this.data.emitter.emit("log", type)
+
+                if (type === 'add_book') {
+                    if (content) {
+                        that.addBook(content)
+                    }
+                }
+                if (type === 'add_chapter') {
+                    if (content) {
+                        that.saveChapter(content)
+                    }
+                }
+                if (type === 'book_info') {
+                    that.bookInfo()
+                }
+                if (type === 'update_book') {
+                    if (content) {
+                        that.updateBook(content)
+                    }
+                }
+                if (type === "update_cover") {
+                    if (content) {
+                        that.updateCover(content)
+                    }
+                }
+                counter++
+                this.data.emitter.emit('conn', type + ' ' + counter)
+            }
+            storage.get({
+                key: 'config',
+                success: function (data) {
+                    if (data) {
+                        that.data.config = JSON.parse(data)
+                        that.data.config.auto = that.data.config.auto?that.data.config.auto:false
+                        that.data.config.size?that.data.config.size:54
+                        that.data.config.autoTime?that.data.config.autoTime:6
+                        that.data.config.next = false
+                        that.data.config.bright?that.data.config.bright:false
+                        that.brightSwith(that.data.config.bright)
+                    }else {
+                        that.data.config = {
+                            auto:false,
+                            pin:true
+                        }
+                    }
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+        },
+        onDestroy() {
+            console.log('app destroyed')
+        },
+        rmDir() {
+            const that = this
+            storage.get({
+                key: 'first_start',
+                success: function (data) {
+                    if (data && Number(data) === 1) {
+                    } else {
+                        storage.set({
+                            key: 'first_start',
+                            value: '1',
+                            success: function (data) {
+
+                            },
+                            fail: function (data, code) {
+                                console.log(`handling fail, code = ${code}`)
+                            }
+                        })
+                        file.rmdir({
+                            uri: 'internal://files/reader',
+                            recursive: true,
+                            success: function (data) {
+                                setTimeout(() => {
+                                    that.sendLog('first remove')
+                                }, 2000)
+                            },
+                            fail: function (data, code) {
+                                console.log(`handling fail, code = ${code}`)
+                            }
+                        })
+                        file.rmdir({
+                            uri: 'internal://mass/reader',
+                            recursive: true,
+                            success: function (data) {
+                                console.log(`handling success`)
+                            },
+                            fail: function (data, code) {
+                                console.log(`handling fail, code = ${code}`)
+                            }
+                        })
+                    }
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+        },
+        async loadBooks() {
+            const that = this
+            const promise = new Promise((resolve, reject) => {
+                //加载书架
+                storage.get({
+                    key: 'books',
+                    success: function (data) {
+                        that.data.books = (JSON.parse(data) || []).map(item => {
+                            const temp = item
+                            temp.chapters = Number(item.chapters)
+                            return temp
+                        })
+                        that.data.emitter.emit('add_book')
+                        resolve(true)
+                    },
+                    fail: function (data, code) {
+                        resolve(false)
+                    }
+                })
+            })
+            await promise
+        },
+        addBook(book) {
+            const that = this
+            if (this.data.books.some(item => Number(item.id) === Number(book.id))) return
+            this.sendLog("添加新书 "+book.name)
+            book.cover = ""
+            this.data.books.push(book)
+            storage.set({
+                key: 'books',
+                value: JSON.stringify(
+                    this.data.books
+                ),
+                success: function (data) {
+                    console.log('handling success')
+                    that.data.emitter.emit('add_book')
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+        },
+        bookInfo() {
+            this.data.conn.send({
+                data: {
+                    data: JSON.stringify({
+                        type: 'book_info',
+                        content: this.data.books
+                    })
+                },
+                success: () => {
+                    console.log(`handling success`)
+                    this.data.emitter.emit('log', `success bookInfo`)
+                    this.sendLog(`success bookInfo `+new Date().getTime())
+                },
+                fail: ({data, code}) => {
+                    prompt.showToast({
+                        message: `同步信息失败:${code},${data}`,
+                        duration: 2000
+                    })
+                    this.data.emitter.emit('log', `fail:${code},${data}`)
+                    /*this.data.emitter.emit('log', `fail:${code},${data}`)
+                    setTimeout(()=>{
+                        this.data.emitter.emit('book_info')
+                    },2000)*/
+                }
+            })
+        },
+        sendLog(msg) {
+            this.data.conn.send({
+                data: {
+                    data: JSON.stringify({
+                        type: 'log',
+                        content: String(msg)
+                    })
+                },
+                success: () => {
+                },
+                fail: ({data, code}) => {
+                }
+            })
+        },
+        updateBook(content) {
+            // this.data.emitter.emit('log', `updateBook ${Object.keys(content)}`)
+            //
+            let book = content
+            const that = this
+            let {id} = book
+            let tempArr = that.data.books.map((item) => {
+                const temp = item
+                if (Number(id) === Number(temp.id)) {
+                    Object.assign(temp, book)
+                }
+                return temp
+            })
+            that.data.books = tempArr
+            this.data.emitter.emit('add_book')
+            storage.set({
+                key: 'books',
+                value: JSON.stringify(
+                    this.data.books
+                ),
+                success: function (data) {
+                    console.log('handling success')
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+        },
+        async updateCover(content) {
+            let {id, cover, first, end} = content
+            this.data.arr = this.data.arr.concat(cover.split(',').map(item => Number(item)))
+            if (!end) {
+                return
+            }
+            let time = new Date().getTime()
+            let book = this.data.books.find(item => String(item.id) === String(id))
+            if (book && book.cover){
+                file.delete({
+                    uri: book.cover,
+                    success: function (data) {
+                        console.log(`handling success`)
+                    },
+                    fail: function (data, code) {
+                        console.log(`handling fail, code = ${code}`)
+                    }
+                })
+            }
+            file.writeArrayBuffer({
+                uri: `internal://files/reader/${id}/cover.png`,
+                buffer: new Uint8Array(this.data.arr),
+                append: false,
+                success: async () => {
+                    this.data.arr = []
+                    prompt.showToast({
+                        message: `封面已下载`,
+                        duration: 2000
+                    })
+                    setTimeout(() => {
+                        this.updateBook({id, cover: `internal://files/reader/${id}/cover.png`})
+                        this.data.emitter.emit("cover", `internal://files/reader/${id}cover.png`)
+                    }, 2000)
+                },
+                fail: () => {
+                    this.data.emitter.emit('log', `updateCover fail`)
+                    prompt.showToast({
+                        message: `updateCover fail`,
+                        duration: 2000
+                    })
+                }
+            })
+
+        },
+        delBook(id) {
+            this.data.books = this.data.books.filter(item => String(item.id) !== String(id))
+            this.data.emitter.emit('add_book')
+
+            file.rmdir({
+                uri: 'internal://files/reader/' + id,
+                recursive: true,
+                success: function (data) {
+                    console.log(`handling success`)
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+            const that = this
+            storage.set({
+                key: 'books',
+                value: JSON.stringify(
+                    this.data.books
+                ),
+                success: function (data) {
+                    console.log('handling success')
+                    that.bookInfo()
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+        },
+        saveChapter(chapter) {
+            let {index, bookId, name, paging, content, first} = chapter
+            let that = this
+            name = name.trim()
+            file.writeText({
+                uri: `internal://files/reader/${bookId}/${paging}/${index}_${name}.txt`,
+                text: content,
+                append: !Boolean(first),
+                success: function () {
+                    console.log('handling success')
+                    that.data.emitter.emit('conn', 'chapter save' + counter++)
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                    that.data.emitter.emit('conn', 'chapter save err' + counter++)
+                }
+            })
+        },
+        changeConfig(config) {
+            this.data.config = config
+            this.sendLog(`changeConfig ${JSON.stringify(config)}`)
+            /*prompt.showToast({
+                message: `changeConfig ${JSON.stringify(config)}`,
+                duration: 2000
+            })*/
+            storage.set({
+                key: 'config',
+                value: JSON.stringify(
+                    this.data.config
+                ),
+                success: function (data) {
+                    console.log('handling success')
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+        },
+        brightSwith(checked){
+            brightness.setKeepScreenOn({
+                keepScreenOn: checked,
+                success: function() {
+                    if (checked){
+                        prompt.showToast({
+                            message: '已开启屏幕常亮'
+                        })
+                    }
+
+                },
+                fail: function(data, code) {
+                    prompt.showToast({
+                        message: '设置屏幕常亮失败'
+                    })
+                }
+            })
+        },
+        data: {
+            conn: {},
+            books: [],
+            message: 'message',
+            emitter: {},
+            arr: [],
+            config:{
+                auto:false,
+                autoTime:6,
+                pin:true,
+                bright:false,
+                size:54
+            },
+            next: false,
+        }
+
+     }
+</script>

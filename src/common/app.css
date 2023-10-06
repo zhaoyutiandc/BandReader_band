@@ -1,0 +1,60 @@
+div{
+    color: white;
+    width: 100%;
+}
+
+.page-cmpt{
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    color: white;
+    padding: 14px;
+}
+
+text {
+    color: white;
+}
+
+.font-gray{
+    color: #9E9E9E;
+}
+
+.app-title {
+    justify-content: space-between;
+    font-weight: bold;
+    align-items: center;
+    color:white;
+    font-size: 64px;
+    width: 100%;
+    background-color: rgba(0,0,0,0.6);
+    border-radius: 4px;
+}
+.text-big{
+    font-size: 52px;
+}
+
+.main-card{
+    width: 100%;
+    border-radius: 44px;
+    background-color: rgba(51, 45, 45, 0.6);
+    color: white;
+    padding: 32px 22px 32px 22px;
+    align-items: center;
+    justify-content: space-between;
+}
+.item-card{
+    width: 100%;
+    border-radius: 44px;
+    background-color: rgba(51, 45, 45, 0.6);
+    color: white;
+    padding: 32px 14px 32px 32px;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.col{
+    width: 100%;
+    flex-direction: column;
+    justify-content: flex-start;
+}

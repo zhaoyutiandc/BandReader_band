@@ -1,0 +1,615 @@
+<template>
+  <div id="page" class="demo-page" @longpress="stop">
+    <div v-if="pin" class="title">
+      <marquee scrollamount="{{24}}" style="flex: 1;" onclick="routeHome">{{ name }}</marquee>
+      <text style="width: 14px"></text>
+      <text>{{ time }}</text>
+    </div>
+    <text v-if="pin"
+          style="height: 2px;width:100%;background-color: {{auto?'#67C23A':'#9E9E9E'}};margin-bottom: 16px"></text>
+    <div style="width: 100%">
+      <text style="font-size: 1px">top{{ top }}</text>
+      <text style="font-size: 1px">top{{ count }}</text>
+      <text style="font-size: 1px;color: black">{{ config }}</text>
+    </div>
+    <scroll
+        id="scroll"
+        scroll-y="{{true}}"
+        scroll-top="{{top}}"
+        scroll-bottom="{{bottom}}"
+        @scrollbottom="onBottom"
+        @scrolltop="onTop"
+        @scroll="onScroll"
+        @click="next"
+        @swipe="onSwipe"
+        class="list">
+      <!--<div class="item-card" style="width: 100%;height: 58px;" @click="nextChapter">
+        <text style="justify-content: center;width: 100%;">下一章</text>
+      </div>-->
+
+      <div id="page1" style="flex-direction: column;width: 100%;flex-shrink: 0;">
+        <div for="{{page1.item}}" class="item">
+          <text style="font-size: {{size}}px;flex-shrink: 0;width: 100%">{{ $item }}</text>
+        </div>
+      </div>
+      <div id="page2" style="flex-direction: column;width: 100%;flex-shrink: 0">
+        <div for="{{page2.item}}" class="item">
+          <text style="font-size: {{size}}px;flex-shrink: 0;width: 100%">{{ $item }}</text>
+        </div>
+      </div>
+    </scroll>
+
+    <div if="{{wait}}" style="width: 100%;height: 100%;position: absolute;left: 0px;top: 0px"></div>
+
+    <div if="{{last}}" class="next" @click="nextChapter">
+      <text style="width: 44px"></text>
+      <text style="color: white">下一章</text>
+      <text style="width: 44px"></text>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from '@system.router'
+import storage from '@system.storage'
+import file from '@system.file'
+import prompt from '@system.prompt'
+import {off} from "@service.push";
+
+let rawLines = []
+let pages = []
+let timer
+let timer2
+let timer3
+let offset = 0
+export default {
+  name: 'detail',
+  private: {
+    text: ['加载中...'],
+    time: '00.00',
+    pin: true,
+    size: 54,
+    show: false,
+    auto: false,
+    index: 0,
+    wait: false,
+    top: 12,
+    bottom: 0,
+    init: false,
+    h1: 0,
+    wheight: 0,
+    sheight: 0,
+    last: false,
+    page1: {},
+    page2: {},
+    scrollEL: {},
+    config: "",
+    cpage: 0,
+    press: false,
+    ctop: 30,
+    count: 0,
+  },
+  protected: {
+    index: 0,
+    uri: '',
+    name: "",
+    bid: '',
+    bname: '',
+    chapterNum: 0,
+  },
+  onInit() {
+
+  },
+  onShow() {
+    this.config = {...this.$app.$def.data.config}
+    if (!this.auto && this.config.auto) {
+      prompt.showToast({
+        message: '长按停止自动翻页',
+        duration: 2000
+      })
+    }
+    this.auto = this.config.auto
+    this.$app.$def.sendLog("config " + JSON.stringify(this.$app.$def.data.config))
+    if (this.$app.$def.data.config.auto) {
+      clearInterval(timer3)
+      timer3 = setInterval(() => {
+
+        if (this.wait || !this.init) return;
+        setTimeout(() => {
+          if (this.wait) return;
+          this.next()
+        }, 2000)
+      }, this.config.autoTime * 1000)
+    } else {
+      clearInterval(timer3)
+    }
+    let reload =()=>{
+      router.replace({
+        uri: '/pages/read',
+        params: {
+          index: this.index,
+          uri: this.uri,
+          name: this.name,
+          bid: this.bid,
+          bname: this.bname
+        }
+      })
+    }
+
+    //size start
+    let configSize = this.config.size || 54
+    let isPin = this.pin
+    this.pin = this.$app.$def.data.config.pin
+    if ((isPin !== this.pin) && this.init) {
+      reload()
+      return
+    }
+    if (this.init) {
+      if (this.size !== configSize) {
+        reload()
+        return
+      }
+    } else {
+      this.size = configSize
+      this.splitText()
+    }
+    /*setTimeout(() => {
+      this.top = this.top + 5
+    }, 300)*/
+    //size end
+  },
+  onReady() {
+    this.setTime()
+    timer = setInterval(() => {
+      this.setTime()
+    }, 1000 * 60)
+    timer2 = setInterval(() => {
+      this.count = this.count + 1
+    }, 1000)
+
+    storage.get({
+      key: 'tutorial',
+      success: (data) => {
+        if (data === '') {
+          prompt.showToast({
+            message: '从右向左划进入设置!!!',
+            duration: 10000
+          })
+          storage.set({
+            key: 'tutorial',
+            value: '1'
+          })
+        } else {
+        }
+      }
+    })
+
+    const that = this
+    this.scrollEL = this.$element('scroll')
+    this.$element('scroll')
+        .getBoundingClientRect({
+          success: (info) => {
+            let {height} = info
+            this.wheight = height
+          }
+        })
+  },
+  onDestroy() {
+    clearInterval(timer)
+    clearInterval(timer2)
+  },
+  onBackPress() {
+    this.saveOffset(true)
+    return true
+  },
+  setTime() {
+    let date = new Date()
+    let h = date.getHours()
+    let m = date.getMinutes() + 1
+    this.time = `${h < 10 ? '0' + h : h}:${m < 10 ? '0' + m : m}`
+  },
+  async initPage() {
+    const that = this
+    storage.get({
+      key: `cpage_${this.bid}`,
+      success: async (data) => {
+        let pageInfo = {
+          page: 0,
+          index:-1
+        }
+        try {
+          pageInfo = JSON.parse(data)
+        } catch (e) {
+          console.log(e)
+        }
+        if (Number(pageInfo.index)===Number(this.index)){
+          this.cpage = Number(pageInfo.page) || 0
+        }
+        this.page1 = pages[this.cpage]
+        this.page2 = pages[this.cpage + 1] || []
+        if (that.init) {
+          return
+        }
+        that.init = true
+        await this.delay()
+        storage.get({
+          key: `doffset_${that.bid}`,
+          success: (data) => {
+            if (data==='') {
+              setTimeout(() => {
+                that.wait = false
+              }, 300)
+              return
+            }
+            let offsetInfo = {
+              offset: 0,
+              index:-1
+            }
+            try {
+              offsetInfo = JSON.parse(data)
+            } catch (e) {
+              console.log(e)
+            }
+            let {index,offset} = offsetInfo
+            if (index !== that.index) {
+              setTimeout(() => {
+                that.wait = false
+              }, 300)
+              return
+            }
+            that.$app.$def.sendLog(index+" init offset:" + offset)
+            that.top = offset
+            setTimeout(() => {
+              that.wait = false
+            }, 300)
+          }
+        })
+      },
+      fail: function (data, code) {
+        console.log(`handling fail, code = ${code}`)
+        that.wait = false
+        that.init = true
+      }
+    })
+  },
+  changePage(page) {
+    this.cpage = page
+    const that = this
+    storage.set({
+      key: `cpage_${this.bid}`,
+      value: JSON.stringify({
+        index: this.index,
+        page: page
+      }),
+      success: function (data) {
+
+      },
+      fail: function (data, code) {
+        console.log(`handling fail, code = ${code}`)
+      }
+    })
+  },
+  saveOffset(back) {
+    const that = this
+    storage.set({
+      key: `doffset_${that.bid}`,
+      value: JSON.stringify({offset: offset, index: that.index}),
+      success: function (data) {
+        if (back) {
+          //sendlog
+          that.$app.$def.sendLog("back:" + offset)
+          router.back()
+        }
+      },
+      fail: function (data, code) {
+        //sendlog
+        that.$app.$def.sendLog("fail:" + code)
+      }
+    })
+  },
+  onTop() {
+    //sendlog
+    this.last = false
+    this.$app.$def.sendLog("onTop:" + this.page1.page + "wait:" + this.wait)
+    if (this.wait) return;
+    this.$app.$def.sendLog("onTop: not wait")
+    if (this.page1.page === 1) {
+      return
+    }
+
+    this.wait = true
+    this.$app.$def.sendLog("onTop: set ture")
+    this.$app.$def.sendLog("onTop change" + this.page1.page)
+    this.changePage(this.page1.page - 1)
+    this.$element('page1').getBoundingClientRect({
+      success: async ({height}) => {
+        this.bottom = height - this.wheight
+        this.page2 = this.page1
+        this.page1 = pages[this.page1.page - 2]
+        this.bottom = height - this.wheight
+        this.saveOffset()
+        await this.delay()
+        this.wait = false
+      }
+    })
+  },
+  onBottom() {
+    if (this.wait) return;
+    if (this.page2.page === pages[pages.length - 1].page) {
+      this.last = true
+      // this.stop()
+      return
+    } else {
+      this.last = false
+    }
+    if (pages[this.page1.page].item.toString() === pages[this.page2.page].item.toString()) {
+      //sendlog
+      this.$app.$def.sendLog("same page:" + pages[this.page1.page].item.toString().length)
+      return;
+    }
+    this.wait = true
+    this.$app.$def.sendLog("on bottom: set ture")
+    if (pages[this.page2.page]) {
+      this.$element('page2').getBoundingClientRect({
+        success: async ({height}) => {
+          this.h1 = height
+          this.$app.$def.sendLog("next page:" + pages[this.page1.page].item.toString().length)
+          this.top = height - this.wheight
+          this.page1 = this.page2
+          this.page2 = pages[this.page1.page]
+          this.top = height - this.wheight
+          await this.delay()
+          this.wait = false
+          this.saveOffset()
+          this.changePage(this.page1.page - 1)
+        }
+      })
+    }
+  },
+  next() {
+    if (this.wait || this.press) return;
+    this.top = (offset || 0) + 495
+  },
+  stop() {
+    this.press = true
+    setTimeout(() => {
+      this.press = false
+    }, 2000)
+    if (this.config.auto === false) return;
+    if (this.config.auto) {
+      prompt.showToast({
+        message: '已停止自动翻页',
+        duration: 2000
+      })
+    }
+    this.config.auto = false
+    this.auto = false
+    this.$app.$def.changeConfig(this.config)
+    clearInterval(timer3)
+  },
+  config() {
+    router.push({
+      uri: '/pages/config',
+      params: {}
+    })
+  },
+  onScroll(evt) {
+    offset = evt.scrollY
+    if (this.wait) return;
+    if (offset < 10) {
+      this.ctop = offset
+      this.onTop()
+    }
+  },
+  nextChapter() {
+    //sendlog
+    this.$app.$def.sendLog(["next chapter ", this.index, this.chapterNum])
+    if (Number(this.index) === (Number(this.chapterNum) - 1)) {
+      prompt.showToast({
+        message: '已经是最后一章了',
+        duration: 2000
+      })
+      return
+    }
+    this.$app.$def.data.next = true
+    this.saveOffset(true)
+  },
+  onSwipe({direction}) {
+    if (direction === 'right') {
+      this.saveOffset(true)
+    }
+    if (direction === 'left') {
+      this.saveOffset()
+      router.push({
+        uri: '/pages/config',
+      })
+    }
+  },
+  splitText() {
+    this.wait = true
+    this.$app.$def.sendLog("on split text set ture")
+    pages = []
+    this.page1 = {}
+    this.page2 = {}
+    const that = this
+    file.readText({
+      uri: this.uri,
+      success: function (data) {
+        console.log('text: ' + data.text)
+
+        function splitLength(text, length) {
+          const result = [];
+          let i = 0;
+          while (i < text.length) {
+            const chunk = text.slice(i, i + length);
+            result.push(chunk);
+            i += length;
+          }
+          return result;
+        }
+
+        let tempLines = data.text.split('\n')
+        if (tempLines.length < 2) {
+          tempLines = data.text.split('\r')
+        }
+        tempLines = tempLines.splice(/ {4,}/g)
+        tempLines = tempLines.filter(it => it.trim().length > 0)
+
+        tempLines.forEach((line) => {
+          if (line.length < 50) {
+            rawLines.push(line)
+          } else {
+            splitLength(line, 50).forEach(it => {
+              rawLines.push(it)
+            })
+          }
+        })
+        rawLines.push(" ")
+        let page = 1
+        while (rawLines.length > 0) {
+          pages.push({
+            page: page++,
+            height: 0,
+            item: rawLines.splice(0, 10)
+          })
+        }
+        that.initPage().then()
+      },
+      fail: function (data, code) {
+        that.wait = false
+        console.log(`handling fail, code = ${code}`)
+      }
+    })
+  },
+  routeHome() {
+    this.saveOffset(true)
+  },
+  change(e) {
+    this.index = e.index
+  },
+
+  async delay(time = 1000) {
+    let promise = new Promise((resolve) => {
+      setTimeout(() => {
+        resolve()
+      }, time)
+    })
+    await promise
+  },
+}
+</script>
+
+<style>
+@import '../../common/app.css';
+
+.demo-page {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  background-color: #000000;
+  color: white;
+  padding: 14px 0px 14px 0px;
+}
+
+.content {
+  padding: 14px;
+  width: 100%;
+  height: 100%;
+  border: 1px solid red;
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  padding-left: 14px;
+  padding-right: 14px;
+  text-align: center;
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  color: lightgray;
+}
+
+.setting {
+  position: absolute;
+  color: black;
+  border: 1px solid white;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.swiper {
+  flex: 1;
+  width: 100%;
+  padding: 8px;
+  align-items: flex-start;
+}
+
+.wrap {
+  font-size: 80px;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.94);
+  margin-bottom: 54px;
+  border-radius: 60px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+
+}
+
+.txt {
+  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
+  align-items: flex-start;
+}
+
+.size {
+  font-size: 80px;
+  margin-right: 20px;
+  margin-left: 20px
+}
+
+.page {
+  background-color: red;
+}
+
+.list {
+  flex: 1;
+  width: 100%;
+  padding: 8px 0px 8px 0px;
+  display: flex;
+  flex-direction: column;
+}
+
+.next {
+  position: absolute;
+  left: 100px;
+  bottom: 0px;
+  justify-content: space-between;
+  align-items: center;
+  width: 62%;
+  height: 80px;
+  background-color: rgba(51, 45, 45, 0.6);
+  color: white;
+  border-radius: 44px;
+}
+
+.item {
+  justify-content: center;
+  border-radius: 16px;
+  color: white;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+</style>

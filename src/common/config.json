@@ -1,0 +1,37 @@
+{
+  "name": "bandReader",
+  "chapters": [
+    {
+      "id":1,
+      "name":"chapter 1"
+    },
+    {
+      "id":2,
+      "name":"第一章 山边小村"
+    },
+    {
+      "id":1,
+      "name":"chapter 1"
+    },
+    {
+      "id":2,
+      "name":"第一章 山边小村"
+    },
+    {
+      "id":1,
+      "name":"chapter 1"
+    },
+    {
+      "id":2,
+      "name":"第一章 山边小村"
+    },
+    {
+      "id":1,
+      "name":"chapter 1"
+    },
+    {
+      "id":2,
+      "name":"第一章 山边小村"
+    }
+  ]
+}

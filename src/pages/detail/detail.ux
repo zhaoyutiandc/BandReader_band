@@ -1,0 +1,422 @@
+<template>
+    <div class="demo-page">
+        <div class="title">
+            <marquee scrollamount="{{24}}" style="flex: 1;margin-right: 14px" onclick="routeHome">{{name}}</marquee>
+            <text>{{time}}</text>
+        </div>
+        <text style="height: 2px;width:100%;background-color: white;margin-bottom: 16px"></text>
+        <text style="font-size: 1px">top{{top}}</text>
+        <scroll
+                id="scroll"
+                scroll-y="{{true}}"
+                scroll-top="{{top}}"
+                @scrollbottom="onBottom"
+                @scrolltop="onTop"
+                @scroll="onScroll"
+                onclick="next()"
+                @swipe="onSwipe"
+                class="list">
+            <div for="{{page1.item}}" class="item">
+                <text style="font-size: 54px;flex-shrink: 0;width: 100%">{{$item}}</text>
+            </div>
+            <div for="{{page2.item}}" class="item">
+                <text style="font-size: 54px;flex-shrink: 0;width: 100%">{{$item}}</text>
+            </div>
+        </scroll>
+
+
+        <!--<div if="{{show}}" class="setting" onclick="showSetting(false)">
+            <div class="wrap">
+                <text class="size" onclick="changeSize(44)">小</text>
+                <text class="size" onclick="changeSize(54)">中</text>
+                <text class="size" onclick="changeSize(58)">大</text>
+            </div>
+        </div>-->
+    </div>
+</template>
+
+<script>
+    import router from '@system.router'
+    import storage from '@system.storage'
+    import file from '@system.file'
+
+
+    let rawLines = []
+    let pages = []
+    let timer
+    let offset = 0
+    export default {
+        name: 'detail',
+        private: {
+            text: ['加载中...'],
+            time:'00.00',
+            rawText: '',
+            myName: "",
+            sy: true,
+            size: 58,
+            show: false,
+            gs: 0,
+            split: 0,
+            index: 0,
+            swiperEl: {},
+            wait: false,
+            ctext: 0,
+            d: "",
+            join: "",
+            lines: [],
+            top: 0,
+            wheight: 0,
+            sheight: 0,
+            page1: {},
+            page2: {},
+            list1: [],
+            list2: [],
+            scrollEL: {},
+            h1: 0,
+            h2: 0,
+            cpage: 0
+        },
+        protected: {
+            index: 0,
+            uri: '',
+            name: "",
+            bid: '',
+            bname: ''
+        },
+        onInit() {
+
+        },
+        onShow() {
+            this.setTime()
+            timer = setInterval(()=>{
+                this.setTime()
+            },1000 * 60)
+
+            const that = this
+            this.swiperEl = this.$element('swiper')
+            this.scrollEL = this.$element('scroll')
+            this.$element('scroll')
+                .getBoundingClientRect({
+                    success: (info) => {
+                        let {height} = info
+                        this.wheight = height
+                    }
+                })
+            this.splitText()
+            storage.get({
+                key: 'size',
+                success: function (data) {
+                    that.size = Number(data) || 58
+                },
+                fail: function (data, code) {
+                }
+            })
+        },
+        onDestroy() {
+            clearInterval(timer)
+        },
+        setTime(){
+            let date = new Date()
+            let h = date.getHours()
+            let m = date.getMinutes()
+            this.time = `${h<10?'0'+h:h}:${m<10?'0'+m:m}`
+        },
+        async initPage() {
+            storage.get({
+                key: `cpage_${this.bid}_${this.index}`,
+                success: async (data) => {
+                    this.cpage = Number(data) || 0
+                    await this.delay()
+                    this.page1 = pages[this.cpage]
+                    await this.delay()
+                    this.$element('scroll').getScrollRect({
+                        success: async ({height}) => {
+                            this.page1.length = height
+                            pages[this.cpage].height = height
+                        }
+                    })
+                    this.page2 = pages[this.cpage + 1] || []
+                    await this.delay()
+                    this.$element('scroll').getScrollRect({
+                        success: async ({height}) => {
+                            this.page2.height = height - pages[this.cpage].height
+                            pages[this.cpage + 1].height = height - pages[this.cpage].height
+                        }
+                    })
+                    await this.delay()
+                    /*storage.get({
+                        key: `doffset_${that.bid}_${that.index}`,
+                        success:(data)=>{
+                            this.top = Number(data) || 0
+                        }
+                    })*/
+                }
+            })
+
+
+        },
+        changePage(page) {
+            this.cpage = page
+            const that = this
+            storage.set({
+                key: `cpage_${this.bid}_${this.index}`,
+                value: String(page),
+                success: function (data) {
+
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+        },
+        saveOffset(){
+            const that = this
+            storage.set({
+                key: `doffset_${that.bid}_${that.index}`,
+                value:String(offset),
+                success: function (data) {
+                },
+                fail: function (data, code) {
+                }
+            })
+        },
+        onTop() {
+            if (this.wait) return;
+            if (this.page1.page === 1) {
+                return
+            }
+            this.wait = true
+
+            if (pages[this.page1.page - 2] && pages[this.page1.page - 2].height > 0) {
+                this.top = pages[this.page1.page - 2].height
+            }
+
+            this.page2 = this.page1
+            this.page1 = pages[this.page1.page - 2]
+            this.changePage(this.page1.page - 1)
+            this.delay(2000)
+                .then(() => {
+                    this.wait = false
+                })
+            this.saveOffset()
+        },
+        next() {
+            this.top = (offset || 0) + 485
+        },
+        onScroll(evt) {
+            offset = evt.scrollY
+        },
+        onBottom() {
+            if (this.wait) return;
+            this.wait = true
+            if (this.page2.page === pages[pages.length - 1]) {
+                return
+            }
+            let offset = this.page2.height - this.wheight
+            if (offset > 0) {
+                this.top = this.page2.height - this.wheight
+            }
+            if(pages[this.page1.page]){
+                this.page1 = this.page2
+                this.page2 = pages[this.page1.page]
+            }
+            this.changePage(this.page1.page - 1)
+            this.delay()
+                .then(async () => {
+                    this.$element('scroll').getScrollRect({
+                        success: async ({height}) => {
+                            this.page2.height = height - this.page1.height
+                            pages[this.page2.page - 1].height = height - this.page1.height
+                        }
+                    })
+                    await this.delay(2000)
+                    this.wait = false
+                    this.saveOffset()
+                })
+        },
+        toNext() {
+            if (this.ctext >= this.text.length - 1) return
+            this.ctext = this.ctext + 1
+        },
+        onSwipe({direction}){
+            if (direction==='right'){
+                router.back()
+            }
+        },
+        splitText() {
+            const that = this
+            file.readText({
+                uri: this.uri,
+                success: function (data) {
+                    console.log('text: ' + data.text)
+                    function splitLength(text, length) {
+                        const result = [];
+                        let i = 0;
+                        while (i < text.length) {
+                            const chunk = text.slice(i, i + length);
+                            result.push(chunk);
+                            i += length;
+                        }
+                        return result;
+                    }
+
+                    let tempLines = data.text.split('\n').filter(it => it !== "")
+                    tempLines.forEach((line)=>{
+                        if (line.length<50){
+                            rawLines.push(line)
+                        }else {
+                            splitLength(line,50).forEach(it=> {
+                                rawLines.push(it)
+                            })
+                        }
+                    })
+                    let page = 1
+                    while (rawLines.length > 0) {
+                        pages.push({
+                            page: page++,
+                            height: 0,
+                            item: rawLines.splice(0, 10)
+                        })
+                    }
+                    that.initPage().then()
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+        },
+        routeHome() {
+            router.back()
+        },
+        change(e) {
+            this.index = e.index
+        },
+
+        async delay(time = 1000) {
+            let promise = new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve()
+                }, time)
+            })
+            await promise
+        },
+        changeSize(size) {
+            const that = this
+            storage.set({
+                key: 'size',
+                value: String(size),
+                success: function (data) {
+                    that.size = size
+                    that.splitText(that.rawText)
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+        },
+        showSetting(show = true) {
+            this.show = show
+        }
+    }
+</script>
+
+<style>
+    .demo-page {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+        background-color: #000000;
+        color: white;
+        padding: 14px;
+    }
+
+    .content {
+        padding: 14px;
+        width: 100%;
+        height: 100%;
+        border: 1px solid red;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .title {
+        padding-left: 14px;
+        padding-right: 14px;
+        text-align: center;
+        width: 100%;
+        display: flex;
+        justify-content: flex-start;
+        color: lightgray;
+    }
+
+    .setting {
+        position: absolute;
+        color: black;
+        border: 1px solid white;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+    }
+
+    .swiper {
+        flex: 1;
+        width: 100%;
+        padding: 8px;
+        align-items: flex-start;
+    }
+
+    .wrap {
+        font-size: 80px;
+        padding: 10px;
+        background-color: rgba(255, 255, 255, 0.94);
+        margin-bottom: 54px;
+        border-radius: 60px;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+
+    }
+
+    .txt {
+        flex-shrink: 0;
+        width: 100%;
+        height: 100%;
+        align-items: flex-start;
+    }
+
+    .size {
+        font-size: 80px;
+        margin-right: 20px;
+        margin-left: 20px
+    }
+
+    .page {
+        background-color: red;
+    }
+
+    .list {
+        flex: 1;
+        width: 100%;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .item {
+        /*border: 1px solid white;*/
+        padding: 8px 16px 8px 16px;
+        border-radius: 16px;
+        color: white;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+</style>

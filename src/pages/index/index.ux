@@ -1,0 +1,296 @@
+<template>
+    <div class="demo-page" @swipe="onSwipe">
+        <div class="title">
+            <marquee scrollamount="{{12}}" style="flex: 1" onclick="back()">{{name}}</marquee>
+            <text style="text-decoration:underline;padding-left: 24px" onclick="onShowChunk">章节</text>
+        </div>
+        <text style="font-size: 1px">{{pindex}}</text>
+
+        <scroll
+                if="{{showChunk==false}}"
+                scroll-y="{{true}}"
+                scroll-top="{{top}}"
+                @scroll="{{onScroll}}"
+                class="list">
+            <div for="{{chapters}}"  id="chapter{{$idx}}" class="item"
+                 onclick="toDetail($item.index,$item.uri,$item.name)">
+                <text style="flex: 1">{{$item.name}}</text>
+                <text if="{{curi===$item.uri}}"
+                      style="color: crimson;width: 10px;height: 10px;background-color: red;border-radius: 50%"></text>
+            </div>
+        </scroll>
+
+        <scroll
+                if="{{showChunk==true}}"
+                scroll-y="{{true}}"
+                scroll-top="{{chunkTop}}"
+                @scroll="{{onChunkScroll}}"
+                class="list">
+            <div for="{{chunks}}" class="item" onclick="toChunk($item)">
+                <marquee scrollamount="{{12}}">{{($item*50)-49}}章 -- {{$item*50}}章</marquee>
+                <text if="{{curChunk==$item}}"
+                      style="color: crimson;width: 10px;height: 10px;background-color: red;border-radius: 50%"></text>
+            </div>
+        </scroll>
+        <text if="{{chapters.length===0 && chunks.length===0}}">无章节</text>
+    </div>
+</template>
+
+<script>
+    import router from '@system.router'
+    import storage from '@system.storage'
+    import file from '@system.file'
+    import prompt from '@system.prompt'
+
+    let offsetY = 0
+    let chunkOffset = 0
+    export default {
+        // 页面级组件的数据模型，影响传入数据的覆盖机制：private内定义的属性不允许被覆盖
+        private: {
+            config: {},
+            top: 0,
+            chunkTop: 0,
+            curi: '',
+            loading:false,
+            y: 2,
+            chapters: [],
+            paging: 1,
+            curChunk: 1,
+            needWait: false,
+            showChunk: true,
+            chunks: [],
+            pindex: 0
+        },
+        protected: {
+            p: 'init',
+            id: '',
+            name: '',
+            pages: 1
+        },
+        onShow() {
+            const that = this
+            let temp = []
+            for (var i = 1; i <= this.pages; i++) {
+                temp.push(i)
+            }
+
+            this.chunks = temp
+            setTimeout(()=>{
+                storage.get({
+                    key: 'chunk_offset_' + this.id,
+                    success: function (data) {
+                        that.chunkTop = Number(data)
+                        that.pindex = Number(data)
+                    },
+                    fail: function (data, code) {
+                    }
+                })
+            },2000)
+            storage.get({
+                key: `chapter_${this.id}`,
+                success: function (data) {
+                    that.curi = data || 0
+                },
+                fail: function (data, code) {
+                }
+            })
+            storage.get({
+                key: 'chunk_' + this.id,
+                success: function (data) {
+                    that.curChunk = data
+                },
+                fail: function (data, code) {
+                }
+            })
+        },
+        onSwipe({direction}){
+            if (direction==='right'){
+                router.back()
+            }
+        },
+        toChunk(chunk) {
+            this.paging = chunk
+            this.loadPage()
+            this.showChunk = false
+        },
+        onShowChunk() {
+            this.showChunk = true
+            this.chapters = []
+        },
+        loadPage(d) {
+            const that = this
+            this.needWait = true
+            this.loading = true
+            that.pindex = 0
+            that.top = 0
+            file.list({
+                uri: `internal://files/reader/${this.id}/${this.paging}`,
+                success: function (data) {
+                    console.log(data.fileList)
+                    that.chapters = data.fileList.map(item => {
+                        let obj = {}
+                        let arr = item.uri.split('/')
+                        obj.index = arr[arr.length - 1].split('.')[0].split('_')[0]
+                        obj.name = arr[arr.length - 1].split('.')[0].split('_')[1]
+                        obj.uri = item.uri
+
+                        storage.set({
+                            key: 'paging_' + that.id,
+                            value: String(that.paging),
+                            success: function (data) {
+                                console.log('handling success')
+                            },
+                            fail: function (data, code) {
+                                console.log(`handling fail, code = ${code}`)
+                            }
+                        })
+
+                        return obj
+                    }).sort((a,b)=>{
+                        return Number(a.index) - Number(b.index)
+                    })
+                    that.loading = false
+                    setTimeout(() => {
+                        if (that.chapters.some(i=>i.uri === that.curi)){
+                            storage.get({
+                                key: 'ioffset_' + that.id,
+                                success:(data)=>{
+                                    that.pindex = data
+                                    that.top = Number(data)||0
+                                }
+                            })
+                        }else {
+                            that.pindex = 0
+                            that.top = 0
+                        }
+                    }, 500)
+                },
+                fail: function (data, code) {
+
+                }
+            })
+        },
+        back() {
+           if(this.showChunk){
+               this.showChunk = false
+           }else  router.back()
+        },
+        toDetail(index, uri, name) {
+            const that = this
+            storage.set({
+                key: 'ioffset_' + this.id,
+                value: String(offsetY),
+                success: function (data) {
+                    console.log('handling success')
+                    that.pindex = offsetY
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+            storage.set({
+                key: 'chunk_offset_' + this.id,
+                value: String(chunkOffset),
+                success: function (data) {
+                    console.log('handling success')
+                    that.pindex = chunkOffset
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+            storage.set({
+                key: `chapter_${this.id}`,
+                value: uri,
+                success: function (data) {
+                    console.log('handling success')
+                    /*that.$app.$def.data.emitter.emit('update_book',JSON.stringify({
+                        id:that.id,
+                        current:index+1
+                    }))*/
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+
+            this.curChunk = this.paging
+            this.saveChunk()
+            router.push({
+                uri: '/pages/detail',
+                params: {index, uri, name, bid: this.id, bname: this.name}
+            })
+        },
+        saveChunk() {
+            let paging = String(this.paging)
+            storage.set({
+                key: 'chunk_' + this.id,
+                value: paging,
+                success: function (data) {
+                    console.log('handling success')
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
+        },
+        onScroll(scroll) {
+            offsetY = scroll.scrollY
+        },
+        onChunkScroll(scroll) {
+            chunkOffset = scroll.scrollY
+        },
+    }
+</script>
+
+<style>
+
+    .demo-page {
+        width: 100%;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+        padding: 14px;
+        background-color: #000000;
+        color: white;
+    }
+
+    .title {
+        width: 100%;
+        font-size: 64px;
+        text-align: left;
+        padding-bottom: 16px;
+        padding-left: 4px;
+        flex-direction: row;
+    }
+
+    .btn {
+        width: 200px;
+        height: 40px;
+        margin-top: 20px;
+        border-radius: 5px;
+        background-color: #09ba07;
+        font-size: 20px;
+        color: #ffffff;
+    }
+
+    .list {
+        flex: 1;
+        width: 100%;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .item {
+        border: 1px solid white;
+        padding: 8px 16px 8px 16px;
+        border-radius: 16px;
+        color: white;
+        width: 100%;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+</style>

@@ -1,0 +1,35 @@
+<template>
+  <div class="page-cmpt">
+    <slot name="topBar"></slot>
+    <div>
+      <image src="/common/icon.png" style="height: 134px;width: 200px;object-fit: contain"></image>
+      <div class="col" style="margin-left: 8px;margin-top: 4px">
+        <text style="font-size: 44px;font-weight: bold">BandReader</text>
+        <text class="font-gray" style="margin-top: 8px">APP</text>
+      </div>
+    </div>
+    <div class="col" style="margin-top: 18px;padding-left: 8px">
+      <text class="line font-gray" style="font-size: 34px">1.打开BandReader App</text>
+      <text class="line font-gray" style="font-size: 34px">2.点击右上角导入文件按钮</text>
+      <text class="line font-gray" style="font-size: 34px">3.选择txt文件</text>
+      <text class="line font-gray" style="font-size: 34px">4.确认书名</text>
+      <text class="line font-gray" style="font-size: 34px">5.进入目录</text>
+      <text class="line font-gray" style="font-size: 34px">6.点击右上角同步手环按钮</text>
+    </div>
+  </div>
+</template>
+<script>
+import router from '@system.router'
+export default {
+  back() {
+    router.back()
+  },
+}
+</script>
+<style>
+@import '../../common/app.css';
+.line{
+  margin-bottom: 8px;
+  font-size: 48px;
+}
+</style>
