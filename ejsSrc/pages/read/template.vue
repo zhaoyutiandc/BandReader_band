@@ -456,10 +456,10 @@ export default {
         tempLines = tempLines.filter(it => it.trim().length > 0)
 
         tempLines.forEach((line) => {
-          if (line.length < 50) {
+          if (line.length < 100) {
             rawLines.push(line)
           } else {
-            splitLength(line, 50).forEach(it => {
+            splitLength(line, 100).forEach(it => {
               rawLines.push(it)
             })
           }

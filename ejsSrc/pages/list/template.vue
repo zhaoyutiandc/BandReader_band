@@ -11,8 +11,8 @@
         scroll-top="{{top}}"
         @scroll="{{onScroll}}"
         class="list">
-      <div for="{{chapters}}" class="item-card" style="align-items: flex-start;padding: 0px 0px 0px 32px;">
-        <div style="flex: 1;padding:32px 0px 32px 0px">
+      <div for="{{chapters}}"  id="c-{{$idx}}"  class="item-card" style="align-items: flex-start;padding: 0px 0px 0px 32px;">
+        <div  style="flex: 1;padding:32px 0px 32px 0px">
           <!--<div style="justify-content: space-between;margin-bottom: 12px;align-items: center">
             &lt;!&ndash;<div style="align-items: center">
               &lt;!&ndash;<marquee scrollamount={{16}} class="chapter-name">{{ $item.name.split(/\s+/).slice(0,-1).join(' ') }}</marquee>
@@ -20,11 +20,11 @@
               <text>{{$item.name}}</text>
             </div>&ndash;&gt;
           </div>-->
-          <text style="flex: 1">{{$item.name}}</text>
-          <text if="{{curi === $item.uri}}" style="width: 50px;text-align: center">{{ curi === $item.uri ? '*' : '' }}</text>-->
+          <text style="flex: 1;color:{{curi === $item.uri ? '#bee0ff' : 'white'}}">{{$item.name}}</text>
+          <!--<text if="{{curi === $item.uri}}" style="width: 50px;text-align: center">{{ curi === $item.uri ? '*' : '' }}</text>&ndash;&gt;-->
           <!--<text class="font-gray" style="font-size: 48px;width: 100%">{{ $item.name.split(/\s+/).slice(-1,).join('') || '' }}</text>-->
         </div>
-        <div style="width: 110px;padding:0px 24px 0px 54px;height: 100%;" onclick="toDetail($item.index,$item.uri,$item.name,$idx)">
+        <div style="width: 90px;padding:0px 14px 0px 0px;height: 100%;justify-content: flex-end" onclick="toDetail($item.index,$item.uri,$item.name,$idx)">
           <image src="/common/goto.png" style="width: 44px;height: 48px;margin-top: 32px"></image>
         </div>
       </div>
@@ -142,10 +142,21 @@ export default {
 
         if (temp) {
           this.nextC = temp.name
-          this.$app.$def.sendLog('list has next chapter')
+          this.$app.$def.sendLog('list has next chapter ' + 'c-' + this.cindex + 1)
           this.$app.$def.data.next = false
-          offsetY = (this.cindex) * 230
-          this.toDetail(temp.index, temp.uri, temp.name,this.cindex + 1)
+          this.$element('c-' + (this.cindex + 1)).getBoundingClientRect({
+            success: (data)=> {
+              this.$app.$def.sendLog(`next chapter ${JSON.stringify(data)}`)
+              offsetY = offsetY + data.height
+              this.top = offsetY
+              this.toDetail(temp.index, temp.uri, temp.name,this.cindex + 1)
+            },
+            fail: (errorData, errorCode) => {
+              this.$app.$def.sendLog('next chapter fail '+ errorCode + ' ' + errorData)
+            },
+          })
+          /*offsetY = (this.cindex) * 190
+          this.top = (this.cindex) * 190*/
         } else {
           this.$app.$def.sendLog('list to next chunk')
           if (this.paging < this.chunks.length) {
