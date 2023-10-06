@@ -39,7 +39,6 @@
           <text style="width: 24px"></text>
           <div style="flex-direction: column">
             <text style="font-size: 40px;margin-top: 16px">请连接手机APP</text>
-            `
             <text style="font-size: 40px;margin-top: 16px">同步书籍</text>
           </div>
         </div>
