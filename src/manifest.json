@@ -28,7 +28,8 @@
     "entry": "pages/home",
     "pages": {
       "pages/home": {
-        "component": "home"
+        "component": "home",
+        "launchMode": "singleTask"
       },
       "pages/help": {
         "component": "help"

@@ -128,7 +128,7 @@ export default {
             this.bindex = Number(data)
             setTimeout(() => {
               this.$element('swiper').swipeTo({index: this.bindex})
-            }, 600)
+            }, 300)
           }
         },
         fail: function (data, code) {
@@ -148,7 +148,7 @@ export default {
     this.books = [...this.$app.$def.data.books].reverse()
     setTimeout(() => {
       this.$element('swiper').swipeTo({index: this.bindex})
-    }, 600)
+    }, 300)
   },
   deleteBook({id, name}) {
     this.isDel = true

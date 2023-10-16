@@ -11,7 +11,7 @@
     "build": "aiot build",
     "release": "aiot release",
     "watch": "aiot watch --open-nuttx",
-    "send": "yarn compile && yarn release && adb connect 192.168.1.8:5555 && adb -s  192.168.1.8:5555 push .\\dist\\com.example.bandReader.release.1.0.4.rpk /sdcard/project ",
+    "send": "yarn compile && yarn release && adb connect 192.168.137.236:5555 && adb -s  192.168.137.236:5555 push .\\dist\\com.example.bandReader.release.1.0.4.rpk /sdcard/project ",
     "lint": "eslint --format codeframe --fix --ext .ux,.js src/"
   },
   "devDependencies": {

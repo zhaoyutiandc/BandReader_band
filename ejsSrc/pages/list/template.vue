@@ -11,8 +11,9 @@
         scroll-top="{{top}}"
         @scroll="{{onScroll}}"
         class="list">
-      <div for="{{chapters}}"  id="c-{{$idx}}"  class="item-card" style="align-items: flex-start;padding: 0px 0px 0px 32px;">
-        <div  style="flex: 1;padding:32px 0px 32px 0px">
+      <div for="{{chapters}}" id="c-{{$idx}}" class="item-card"
+           style="align-items: flex-start;padding: 0px 0px 0px 32px;">
+        <div style="flex: 1;padding:32px 0px 32px 0px">
           <!--<div style="justify-content: space-between;margin-bottom: 12px;align-items: center">
             &lt;!&ndash;<div style="align-items: center">
               &lt;!&ndash;<marquee scrollamount={{16}} class="chapter-name">{{ $item.name.split(/\s+/).slice(0,-1).join(' ') }}</marquee>
@@ -20,11 +21,12 @@
               <text>{{$item.name}}</text>
             </div>&ndash;&gt;
           </div>-->
-          <text style="flex: 1;color:{{curi === $item.uri ? '#bee0ff' : 'white'}}">{{$item.name}}</text>
+          <text style="flex: 1;color:{{curi === $item.uri ? 'rgb(163,199,218)' : 'white'}}">{{ $item.name }}</text>
           <!--<text if="{{curi === $item.uri}}" style="width: 50px;text-align: center">{{ curi === $item.uri ? '*' : '' }}</text>&ndash;&gt;-->
           <!--<text class="font-gray" style="font-size: 48px;width: 100%">{{ $item.name.split(/\s+/).slice(-1,).join('') || '' }}</text>-->
         </div>
-        <div style="width: 90px;padding:0px 14px 0px 0px;height: 100%;justify-content: flex-end" onclick="toDetail($item.index,$item.uri,$item.name,$idx)">
+        <div style="width: 90px;padding:0px 14px 0px 0px;height: 100%;justify-content: flex-end"
+             onclick="toDetail($item.index,$item.uri,$item.name,$idx)">
           <image src="/common/goto.png" style="width: 44px;height: 48px;margin-top: 32px"></image>
         </div>
       </div>
@@ -63,8 +65,8 @@ export default {
     top: 0,
     chunkTop: 0,
     curi: '',
-    cindex:0,
-    nextC:'',
+    cindex: 0,
+    nextC: '',
     count: 0,
     loading: false,
     y: 2,
@@ -82,7 +84,7 @@ export default {
     id: '',
     name: '',
     pages: 1,
-    chapterNum:0,
+    chapterNum: 0,
   },
   onReady() {
     const that = this
@@ -107,7 +109,7 @@ export default {
         fail: function (data, code) {
         }
       })
-    }, 2000)
+    }, 1300)
     storage.get({
       key: `chapter_${this.id}`,
       success: function (data) {
@@ -131,13 +133,13 @@ export default {
     const that = this
     setTimeout(() => {
       //sendlog
-      this.$app.$def.sendLog('list on show '+ this.$app.$def.data.next)
+      this.$app.$def.sendLog('list on show ' + this.$app.$def.data.next)
       if (this.$app.$def.data.next) {
         let temp
         try {
-         temp  = this.chapters[this.cindex + 1]
-        }catch (e) {
-          
+          temp = this.chapters[this.cindex + 1]
+        } catch (e) {
+
         }
 
         if (temp) {
@@ -145,14 +147,14 @@ export default {
           this.$app.$def.sendLog('list has next chapter ' + 'c-' + this.cindex + 1)
           this.$app.$def.data.next = false
           this.$element('c-' + (this.cindex + 1)).getBoundingClientRect({
-            success: (data)=> {
+            success: (data) => {
               this.$app.$def.sendLog(`next chapter ${JSON.stringify(data)}`)
-              offsetY = offsetY + data.height
+              offsetY = offsetY + data.height + 16
               this.top = offsetY
-              this.toDetail(temp.index, temp.uri, temp.name,this.cindex + 1)
+              this.toDetail(temp.index, temp.uri, temp.name, this.cindex + 1)
             },
             fail: (errorData, errorCode) => {
-              this.$app.$def.sendLog('next chapter fail '+ errorCode + ' ' + errorData)
+              this.$app.$def.sendLog('next chapter fail ' + errorCode + ' ' + errorData)
             },
           })
           /*offsetY = (this.cindex) * 190
@@ -278,7 +280,7 @@ export default {
       this.showChunk = true
     }
   },
-  toDetail(index, uri, name,idx) {
+  toDetail(index, uri, name, idx) {
     const that = this
     this.curChapter = Number(index)
     this.cindex = idx
@@ -311,8 +313,8 @@ export default {
       success: function (data) {
         console.log('handling success')
         that.$app.$def.updateBook({
-          id:that.id,
-          current:name.split(' ')[0],
+          id: that.id,
+          current: (Number(index) + 1) + '章',
         })
       },
       fail: function (data, code) {
@@ -324,7 +326,7 @@ export default {
     this.saveChunk()
     router.push({
       uri: '/pages/read',
-      params: {index, uri, name, bid: this.id, bname: this.name,chapterNum:this.chapterNum}
+      params: {index, uri, name, bid: this.id, bname: this.name, chapterNum: this.chapterNum}
     })
   },
   saveChunk() {
@@ -389,7 +391,7 @@ export default {
   flex-direction: column;
 }
 
-.chapter-name{
+.chapter-name {
   font-size: 50px;
   font-weight: bold;
   flex: 1;

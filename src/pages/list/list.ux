@@ -41,8 +41,8 @@
             </div>&ndash;&gt;
           </div>-->
           <text
-            style="flex: 1;color:{{curi === $item.uri ? '#bee0ff' : 'white'}}"
-            >{{$item.name}}</text
+            style="flex: 1;color:{{curi === $item.uri ? 'rgb(163,199,218)' : 'white'}}"
+            >{{ $item.name }}</text
           >
           <!--<text if="{{curi === $item.uri}}" style="width: 50px;text-align: center">{{ curi === $item.uri ? '*' : '' }}</text>&ndash;&gt;-->
           <!--<text class="font-gray" style="font-size: 48px;width: 100%">{{ $item.name.split(/\s+/).slice(-1,).join('') || '' }}</text>-->
@@ -153,7 +153,7 @@
           },
           fail: function (data, code) {},
         });
-      }, 2000);
+      }, 1300);
       storage.get({
         key: `chapter_${this.id}`,
         success: function (data) {
@@ -188,7 +188,7 @@
             this.$element("c-" + (this.cindex + 1)).getBoundingClientRect({
               success: (data) => {
                 this.$app.$def.sendLog(`next chapter ${JSON.stringify(data)}`);
-                offsetY = offsetY + data.height;
+                offsetY = offsetY + data.height + 16;
                 this.top = offsetY;
                 this.toDetail(temp.index, temp.uri, temp.name, this.cindex + 1);
               },
@@ -354,7 +354,7 @@
           console.log("handling success");
           that.$app.$def.updateBook({
             id: that.id,
-            current: name.split(" ")[0],
+            current: Number(index) + 1 + "章",
           });
         },
         fail: function (data, code) {

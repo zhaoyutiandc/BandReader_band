@@ -24,7 +24,7 @@
       @scrollbottom="onBottom"
       @scrolltop="onTop"
       @scroll="onScroll"
-      @click="next"
+      @click="onClick"
       @swipe="onSwipe"
       class="list"
     >
@@ -113,28 +113,29 @@
     onInit() {},
     onShow() {
       this.config = { ...this.$app.$def.data.config };
-      if (!this.auto && this.config.auto) {
+      this.$app.$def.sendLog("config " + JSON.stringify(this.config));
+      this.auto = this.config.auto;
+      if (this.config.auto) {
         prompt.showToast({
-          message: "长按停止自动翻页",
+          message: "长按停止自动翻页" + this.config.autoTime + "秒",
           duration: 2000,
         });
-      }
-      this.auto = this.config.auto;
-      this.$app.$def.sendLog(
-        "config " + JSON.stringify(this.$app.$def.data.config),
-      );
-      if (this.$app.$def.data.config.auto) {
-        clearInterval(timer3);
-        timer3 = setInterval(() => {
-          if (this.wait || !this.init) return;
-          setTimeout(() => {
-            if (this.wait) return;
+        try {
+          clearInterval(timer3);
+        } catch (e) {}
+        timer3 = setInterval(
+          () => {
             this.next();
-          }, 2000);
-        }, this.config.autoTime * 1000);
+          },
+          Number(this.config.autoTime) * 1000,
+        );
       } else {
         clearInterval(timer3);
       }
+      /*if (this.config.auto) {
+    } else {
+      clearInterval(timer3)
+    }*/
       let reload = () => {
         router.replace({
           uri: "/pages/read",
@@ -378,8 +379,12 @@
         });
       }
     },
+    onClick() {
+      if (this.config.click) {
+        this.next();
+      }
+    },
     next() {
-      if (this.wait || this.press) return;
       this.top = (offset || 0) + 495;
     },
     stop() {

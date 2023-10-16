@@ -30,6 +30,10 @@
         <text>固定顶栏</text>
         <switch checked="{{ config.pin }}" style="height: 48px" @change="onPinChange"></switch>
       </div>
+      <div class="item-card" style="height: 120px;justify-content: space-between;align-items: center">
+        <text>点击翻页</text>
+        <switch checked="{{ config.click }}" style="height: 48px" @change="onClickChange"></switch>
+      </div>
     </scroll>
   </div>
 </template>
@@ -50,6 +54,7 @@ export default {
     config: {
       auto: false,
       pin: true,
+      click:true,
     }
   },
   onInit() {
@@ -88,8 +93,13 @@ export default {
     this.config.pin = e.checked
     this.$app.$def.changeConfig(this.config)
   },
+  onClickChange(e) {
+    this.config.click = e.checked
+    this.$app.$def.changeConfig(this.config)
+  },
   onAutoChange(e) {
     this.config.auto = e.checked
+    this.config.autoTime = this.autoTime
     this.$app.$def.changeConfig(this.config)
     /*this.bright = e.checked
     this.onBrightChange({checked: e.checked})*/
@@ -110,7 +120,7 @@ export default {
     this.bright = e.checked
     this.config.bright = e.checked
     this.$app.$def.changeConfig(this.config)
-    this.$app.$def.brightSwith(e.checked)
+    this.$app.$def.brightSwitch(e.checked)
   },
   back() {
     router.back()

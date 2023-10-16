@@ -24,6 +24,9 @@
             this.data.conn = interconnect.instance()
             this.data.message = "conn"
             this.data.emitter.emit("log", "conn")
+            /*setInterval(()=>{
+                this.sendLog("alive "+new Date().getTime())
+            },3000)*/
             this.data.conn.onmessage = (data) => {
                 console.log(`received message: ${data.data}`)
                 this.data.message = "conn"
@@ -62,15 +65,17 @@
                     if (data) {
                         that.data.config = JSON.parse(data)
                         that.data.config.auto = that.data.config.auto?that.data.config.auto:false
-                        that.data.config.size?that.data.config.size:54
-                        that.data.config.autoTime?that.data.config.autoTime:6
+                        that.data.config.size = that.data.config.size?that.data.config.size:54
+                        that.data.config.autoTime = that.data.config.autoTime?that.data.config.autoTime:6
                         that.data.config.next = false
-                        that.data.config.bright?that.data.config.bright:false
-                        that.brightSwith(that.data.config.bright)
+                        that.data.config.bright = that.data.config.bright?that.data.config.bright:false
+                        that.data.config.click = String(that.data.config.click) === 'true'
+                        that.brightSwitch(that.data.config.bright)
                     }else {
                         that.data.config = {
                             auto:false,
-                            pin:true
+                            pin:true,
+                            click:true,
                         }
                     }
                 },
@@ -244,21 +249,14 @@
             if (!end) {
                 return
             }
-            let time = new Date().getTime()
-            let book = this.data.books.find(item => String(item.id) === String(id))
-            if (book && book.cover){
-                file.delete({
-                    uri: book.cover,
-                    success: function (data) {
-                        console.log(`handling success`)
-                    },
-                    fail: function (data, code) {
-                        console.log(`handling fail, code = ${code}`)
-                    }
-                })
-            }
+            //时间戳
+            let timestamp = new Date().getTime()
+            let uri = `internal://files/reader/${id}/cover${timestamp}.png`
+            let oldUri = this.data.books.find(item => String(item.id) === String(id)).cover
+            //oldUri sendlog
+            this.sendLog(`oldUri ${oldUri}`)
             file.writeArrayBuffer({
-                uri: `internal://files/reader/${id}/cover.png`,
+                uri: uri,
                 buffer: new Uint8Array(this.data.arr),
                 append: false,
                 success: async () => {
@@ -268,8 +266,23 @@
                         duration: 2000
                     })
                     setTimeout(() => {
-                        this.updateBook({id, cover: `internal://files/reader/${id}/cover.png`})
-                        this.data.emitter.emit("cover", `internal://files/reader/${id}cover.png`)
+                        file.delete({
+                            uri: oldUri,
+                            success: function(data) {
+                                prompt.showToast({
+                                    message: `旧封面已删除`,
+                                    duration: 2000
+                                })
+                            },
+                            fail: function(data, code) {
+                                prompt.showToast({
+                                    message: `旧封面删除失败`,
+                                    duration: 2000
+                                })
+                            }
+                        })
+                        this.updateBook({id, cover: uri})
+                        this.data.emitter.emit("cover", uri)
                     }, 2000)
                 },
                 fail: () => {
@@ -332,10 +345,6 @@
         changeConfig(config) {
             this.data.config = config
             this.sendLog(`changeConfig ${JSON.stringify(config)}`)
-            /*prompt.showToast({
-                message: `changeConfig ${JSON.stringify(config)}`,
-                duration: 2000
-            })*/
             storage.set({
                 key: 'config',
                 value: JSON.stringify(
@@ -349,7 +358,7 @@
                 }
             })
         },
-        brightSwith(checked){
+        brightSwitch(checked){
             brightness.setKeepScreenOn({
                 keepScreenOn: checked,
                 success: function() {
@@ -377,6 +386,7 @@
                 auto:false,
                 autoTime:6,
                 pin:true,
+                click:true,
                 bright:false,
                 size:54
             },

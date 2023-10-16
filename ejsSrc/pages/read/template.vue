@@ -20,7 +20,7 @@
         @scrollbottom="onBottom"
         @scrolltop="onTop"
         @scroll="onScroll"
-        @click="next"
+        @click="onClick"
         @swipe="onSwipe"
         class="list">
       <!--<div class="item-card" style="width: 100%;height: 58px;" @click="nextChapter">
@@ -102,28 +102,30 @@ export default {
   },
   onShow() {
     this.config = {...this.$app.$def.data.config}
-    if (!this.auto && this.config.auto) {
+    this.$app.$def.sendLog("config " + JSON.stringify(this.config))
+    this.auto = this.config.auto
+    if (this.config.auto) {
       prompt.showToast({
-        message: '长按停止自动翻页',
+        message: '长按停止自动翻页' + this.config.autoTime + '秒',
         duration: 2000
       })
-    }
-    this.auto = this.config.auto
-    this.$app.$def.sendLog("config " + JSON.stringify(this.$app.$def.data.config))
-    if (this.$app.$def.data.config.auto) {
-      clearInterval(timer3)
+      try {
+        clearInterval(timer3)
+      }catch (e) {
+        
+      }
       timer3 = setInterval(() => {
+        this.next()
+      }, Number(this.config.autoTime) * 1000)
+    }else {
+      clearInterval(timer3)
+    }
+    /*if (this.config.auto) {
 
-        if (this.wait || !this.init) return;
-        setTimeout(() => {
-          if (this.wait) return;
-          this.next()
-        }, 2000)
-      }, this.config.autoTime * 1000)
     } else {
       clearInterval(timer3)
-    }
-    let reload =()=>{
+    }*/
+    let reload = () => {
       router.replace({
         uri: '/pages/read',
         params: {
@@ -215,14 +217,14 @@ export default {
       success: async (data) => {
         let pageInfo = {
           page: 0,
-          index:-1
+          index: -1
         }
         try {
           pageInfo = JSON.parse(data)
         } catch (e) {
           console.log(e)
         }
-        if (Number(pageInfo.index)===Number(this.index)){
+        if (Number(pageInfo.index) === Number(this.index)) {
           this.cpage = Number(pageInfo.page) || 0
         }
         this.page1 = pages[this.cpage]
@@ -235,7 +237,7 @@ export default {
         storage.get({
           key: `doffset_${that.bid}`,
           success: (data) => {
-            if (data==='') {
+            if (data === '') {
               setTimeout(() => {
                 that.wait = false
               }, 300)
@@ -243,21 +245,21 @@ export default {
             }
             let offsetInfo = {
               offset: 0,
-              index:-1
+              index: -1
             }
             try {
               offsetInfo = JSON.parse(data)
             } catch (e) {
               console.log(e)
             }
-            let {index,offset} = offsetInfo
+            let {index, offset} = offsetInfo
             if (index !== that.index) {
               setTimeout(() => {
                 that.wait = false
               }, 300)
               return
             }
-            that.$app.$def.sendLog(index+" init offset:" + offset)
+            that.$app.$def.sendLog(index + " init offset:" + offset)
             that.top = offset
             setTimeout(() => {
               that.wait = false
@@ -366,8 +368,12 @@ export default {
       })
     }
   },
+  onClick(){
+    if (this.config.click) {
+      this.next()
+    }
+  },
   next() {
-    if (this.wait || this.press) return;
     this.top = (offset || 0) + 495
   },
   stop() {
