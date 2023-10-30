@@ -5,12 +5,14 @@
     import prompt from '@system.prompt'
     import mitt from 'mitt'
     import brightness from '@system.brightness'
-
+    import sensor from '@system.sensor'
     let counter = 0
+    let tempList = []
+    let writeLock
+    let writePromise
     export default {
         onCreate() {
             const that = this
-
             this.data.emitter = mitt()
 
             this.data.emitter.on('del_book', this.delBook)
@@ -56,6 +58,11 @@
                         that.updateCover(content)
                     }
                 }
+                if (type === "list_info") {
+                    if (content) {
+                        that.listInfo(content).then()
+                    }
+                }
                 counter++
                 this.data.emitter.emit('conn', type + ' ' + counter)
             }
@@ -64,18 +71,18 @@
                 success: function (data) {
                     if (data) {
                         that.data.config = JSON.parse(data)
-                        that.data.config.auto = that.data.config.auto?that.data.config.auto:false
-                        that.data.config.size = that.data.config.size?that.data.config.size:54
-                        that.data.config.autoTime = that.data.config.autoTime?that.data.config.autoTime:6
+                        that.data.config.auto = that.data.config.auto ? that.data.config.auto : false
+                        that.data.config.size = that.data.config.size ? that.data.config.size : 54
+                        that.data.config.autoTime = that.data.config.autoTime ? that.data.config.autoTime : 6
                         that.data.config.next = false
-                        that.data.config.bright = that.data.config.bright?that.data.config.bright:false
+                        that.data.config.bright = that.data.config.bright ? that.data.config.bright : false
                         that.data.config.click = String(that.data.config.click) === 'true'
                         that.brightSwitch(that.data.config.bright)
-                    }else {
+                    } else {
                         that.data.config = {
-                            auto:false,
-                            pin:true,
-                            click:true,
+                            auto: false,
+                            pin: true,
+                            click: true,
                         }
                     }
                 },
@@ -158,7 +165,7 @@
         addBook(book) {
             const that = this
             if (this.data.books.some(item => Number(item.id) === Number(book.id))) return
-            this.sendLog("添加新书 "+book.name)
+            this.sendLog("添加新书 " + book.name)
             book.cover = ""
             this.data.books.push(book)
             storage.set({
@@ -175,6 +182,30 @@
                 }
             })
         },
+        async listInfo(content) {
+            const that = this
+            let {index, bid, first, end, list} = content
+            let append = true
+            if (Boolean(first)) {
+                append = false
+            }
+            file.writeText({
+                uri: `internal://files/reader/${bid}/list.txt`,
+                text: list + (Boolean(end) ? '' : '\n'),//最后一个不加逗号
+                append,
+                success: function () {
+                    // that.sendLog(`save listInfo ${bid} ${list.length}`)
+                    if (Boolean(end)){
+                        that.updateBook({id: bid, list:true})
+                    }
+                    tempList = []
+                },
+                fail: function (data, code) {
+                    that.sendLog(`save listInfo fail ${bid} ${list.length}`)
+                    tempList = []
+                }
+            })
+        },
         bookInfo() {
             this.data.conn.send({
                 data: {
@@ -186,7 +217,7 @@
                 success: () => {
                     console.log(`handling success`)
                     this.data.emitter.emit('log', `success bookInfo`)
-                    this.sendLog(`success bookInfo `+new Date().getTime())
+                    this.sendLog(`success bookInfo ` + new Date().getTime())
                 },
                 fail: ({data, code}) => {
                     prompt.showToast({
@@ -245,6 +276,9 @@
         },
         async updateCover(content) {
             let {id, cover, first, end} = content
+            if (first) {
+                this.data.arr = []
+            }
             this.data.arr = this.data.arr.concat(cover.split(',').map(item => Number(item)))
             if (!end) {
                 return
@@ -268,13 +302,13 @@
                     setTimeout(() => {
                         file.delete({
                             uri: oldUri,
-                            success: function(data) {
+                            success: function (data) {
                                 prompt.showToast({
                                     message: `旧封面已删除`,
                                     duration: 2000
                                 })
                             },
-                            fail: function(data, code) {
+                            fail: function (data, code) {
                                 prompt.showToast({
                                     message: `旧封面删除失败`,
                                     duration: 2000
@@ -298,7 +332,15 @@
         delBook(id) {
             this.data.books = this.data.books.filter(item => String(item.id) !== String(id))
             this.data.emitter.emit('add_book')
-
+            storage.delete({
+                key: `chapter_${id}`,
+                success: function (data) {
+                    console.log('handling success')
+                },
+                fail: function (data, code) {
+                    console.log(`handling fail, code = ${code}`)
+                }
+            })
             file.rmdir({
                 uri: 'internal://files/reader/' + id,
                 recursive: true,
@@ -358,18 +400,18 @@
                 }
             })
         },
-        brightSwitch(checked){
+        brightSwitch(checked) {
             brightness.setKeepScreenOn({
                 keepScreenOn: checked,
-                success: function() {
-                    if (checked){
+                success: function () {
+                    if (checked) {
                         prompt.showToast({
                             message: '已开启屏幕常亮'
                         })
                     }
 
                 },
-                fail: function(data, code) {
+                fail: function (data, code) {
                     prompt.showToast({
                         message: '设置屏幕常亮失败'
                     })
@@ -379,19 +421,20 @@
         data: {
             conn: {},
             books: [],
+            chapters: [],
             message: 'message',
             emitter: {},
             arr: [],
-            config:{
-                auto:false,
-                autoTime:6,
-                pin:true,
-                click:true,
-                bright:false,
-                size:54
+            config: {
+                auto: false,
+                autoTime: 6,
+                pin: true,
+                click: true,
+                bright: false,
+                size: 54
             },
             next: false,
         }
 
-     }
+    }
 </script>

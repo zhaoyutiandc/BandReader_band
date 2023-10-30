@@ -20,6 +20,9 @@
 <script>
 import router from '@system.router'
 export default {
+  private: {
+    pageTitle: '关于',
+  },
   back() {
     router.back()
   },

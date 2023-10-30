@@ -24,7 +24,7 @@ text {
     font-weight: bold;
     align-items: center;
     color:white;
-    font-size: 54px;
+    font-size: 44px;
     width: 100%;
     background-color: rgba(0,0,0,0.6);
     border-radius: 4px;
@@ -45,6 +45,7 @@ text {
 .item-card{
     width: 100%;
     border-radius: 44px;
+    flex-shrink: 0;
     background-color: rgba(51, 45, 45, 0.6);
     color: white;
     padding: 32px 14px 32px 32px;

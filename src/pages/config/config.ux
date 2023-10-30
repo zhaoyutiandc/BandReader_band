@@ -7,13 +7,18 @@
           src="/common/left_line.png"
         ></image>
       </div>
-      <text style="font-size: 58px">设置</text>
+      <text style="font-size: 50px">
+        <span>{{pageTitle}}</span>
+      </text>
       <div style="flex: 1; justify-content: flex-end" @click="more">
         <image
           if="{{showMore}}"
           style="height: 58px; width: 58px; margin-top: 8px"
           src="/common/more.png"
         ></image>
+        <text if="{{moreText}}" style="font-size: 38px; padding-right: 16px"
+          >{{moreText}}</text
+        >
       </div>
     </div>
     <text style="font-size: 1px">{{count}}</text>
@@ -32,7 +37,7 @@
             style="margin-top: 24px; margin-bottom: 34px; width: 100%"
             min="34"
             max="64"
-            step="4"
+            step="1"
             value="{{ initialSliderValue }}"
             onchange="onSliderChange"
           ></slider>
@@ -80,7 +85,7 @@
           <slider
             style="margin-top: 24px; margin-bottom: 34px; width: 100%"
             min="4"
-            max="8"
+            max="15"
             step="`1`"
             value="{{ initialTimeValue }}"
             onchange="onTimeChange"
@@ -126,6 +131,7 @@
   import storage from "@system.storage";
   export default {
     private: {
+      pageTitle: "设置",
       initialSliderValue: 54,
       sliderValue: 54,
       initialTimeValue: 6,

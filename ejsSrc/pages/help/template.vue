@@ -21,6 +21,9 @@
 <script>
 import router from '@system.router'
 export default {
+  private: {
+    pageTitle: '帮助',
+  },
   back() {
     router.back()
   },

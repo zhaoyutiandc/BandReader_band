@@ -6,7 +6,7 @@
       <div class="item-card" style="justify-content: space-between;align-items: center">
         <div style="width: 100%;flex-direction: column">
           <text>字体大小 {{ size }}</text>
-          <slider style="margin-top: 24px;margin-bottom: 34px;width: 100%" min="34" max="64" step="4" value="{{ initialSliderValue }}"
+          <slider style="margin-top: 24px;margin-bottom: 34px;width: 100%" min="34" max="64" step="1" value="{{ initialSliderValue }}"
                   onchange="onSliderChange"></slider>
           <text style="color: white;font-size: {{size}};text-align: center">测试大小</text>
         </div>
@@ -22,7 +22,7 @@
       <div class="item-card" style="justify-content: space-between;align-items: center">
         <div style="width: 100%;flex-direction: column">
           <text>翻页间隔 {{ autoTime }}秒</text>
-          <slider style="margin-top: 24px;margin-bottom: 34px;width: 100%" min="4" max="8" step="`1`" value="{{ initialTimeValue }}"
+          <slider style="margin-top: 24px;margin-bottom: 34px;width: 100%" min="4" max="15" step="`1`" value="{{ initialTimeValue }}"
                   onchange="onTimeChange"></slider>
         </div>
       </div>
@@ -43,6 +43,7 @@ import prompt from '@system.prompt'
 import storage from "@system.storage";
 export default {
   private: {
+    pageTitle: '设置',
     initialSliderValue: 54,
     sliderValue: 54,
     initialTimeValue:6,

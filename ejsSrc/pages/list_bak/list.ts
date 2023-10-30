@@ -20,7 +20,7 @@ export const createListPage =async (ecmpt: TListEcmpt): Promise<TListEcmpt> => {
             ],
         },
         slots: {
-            topBar: await eRender(createTopBar({props: {title: '章节v2'}})),
+            topBar: await eRender(createTopBar({props: {title: '章节'}})),
             version: versionName,
         },
     }

@@ -7,13 +7,18 @@
           src="/common/left_line.png"
         ></image>
       </div>
-      <text style="font-size: 58px">同步书籍教程</text>
+      <text style="font-size: 50px">
+        <span>{{pageTitle}}</span>
+      </text>
       <div style="flex: 1; justify-content: flex-end" @click="more">
         <image
           if="{{showMore}}"
           style="height: 58px; width: 58px; margin-top: 8px"
           src="/common/more.png"
         ></image>
+        <text if="{{moreText}}" style="font-size: 38px; padding-right: 16px"
+          >{{moreText}}</text
+        >
       </div>
     </div>
     <div>
@@ -45,6 +50,9 @@
 <script>
   import router from "@system.router";
   export default {
+    private: {
+      pageTitle: "帮助",
+    },
     back() {
       router.back();
     },

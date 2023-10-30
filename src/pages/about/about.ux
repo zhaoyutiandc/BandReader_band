@@ -7,13 +7,18 @@
           src="/common/left_line.png"
         ></image>
       </div>
-      <text style="font-size: 58px">关于</text>
+      <text style="font-size: 50px">
+        <span>{{pageTitle}}</span>
+      </text>
       <div style="flex: 1; justify-content: flex-end" @click="more">
         <image
           if="{{showMore}}"
           style="height: 58px; width: 58px; margin-top: 8px"
           src="/common/more.png"
         ></image>
+        <text if="{{moreText}}" style="font-size: 38px; padding-right: 16px"
+          >{{moreText}}</text
+        >
       </div>
     </div>
     <div style="width: 100%">
@@ -23,7 +28,7 @@
       ></image>
       <div class="col" style="margin-left: 8px; margin-top: 8px">
         <text style="font-size: 44px; font-weight: bold">BandReader</text>
-        <text class="font-gray" style="margin-top: 4px">1.0.4</text>
+        <text class="font-gray" style="margin-top: 4px">1.0.5</text>
       </div>
     </div>
     <div class="col" style="margin-top: 18px; padding-left: 12px">
@@ -38,6 +43,9 @@
 <script>
   import router from "@system.router";
   export default {
+    private: {
+      pageTitle: "关于",
+    },
     back() {
       router.back();
     },

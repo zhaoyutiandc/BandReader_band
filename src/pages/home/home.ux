@@ -14,11 +14,11 @@
               justify-content: flex-start;
               align-items: flex-start;
             "
-            onclick="toDirectory($item)"
           >
             <div
               class="main-card"
               style="flex-direction: column; height: 440px"
+              onclick="toDirectory($item)"
             >
               <stack style="width: 100%; height: 100%">
                 <div style="justify-content: flex-end; align-items: flex-end">
@@ -49,9 +49,23 @@
                   <text class="" style="font-size: 44px; width: 100%"
                     >共{{ $item.chapters }}章</text
                   >
-                  <text class="" style="font-size: 44px; width: 100%"
-                    >当前:{{ $item.current || 0 }}</text
+                  <div
+                    class=""
+                    style="
+                      font-size: 44px;
+                      width: 100%;
+                      color: rgb(163, 199, 218);
+                      flex-direction: row;
+                      flex-wrap: wrap;
+                      padding: 16px 0px 0px 0px;
+                    "
+                    @click="toDetail($item)"
                   >
+                    <text style="margin-right: 16px"
+                      >当前:{{ $item.current || 0 }}</text
+                    >
+                    <text>继续阅读</text>
+                  </div>
                 </div>
               </stack>
             </div>
@@ -147,13 +161,18 @@
             src="/common/left_line.png"
           ></image>
         </div>
-        <text style="font-size: 58px">书架</text>
+        <text style="font-size: 50px">
+          <span>{{pageTitle}}</span>
+        </text>
         <div style="flex: 1; justify-content: flex-end" @click="more">
           <image
             if="{{showMore}}"
             style="height: 58px; width: 58px; margin-top: 8px"
             src="/common/more.png"
           ></image>
+          <text if="{{moreText}}" style="font-size: 38px; padding-right: 16px"
+            >{{moreText}}</text
+          >
         </div>
       </div>
     </div>
@@ -164,9 +183,12 @@
   import app from "@system.app";
   import storage from "@system.storage";
   import prompt from "@system.prompt";
+  import sensor from "@system.sensor";
   export default {
     private: {
+      pageTitle: "首页",
       books: [],
+      curBook: {},
       message: "message",
       conn: {},
       evt: "evt",
@@ -181,6 +203,8 @@
       count: 0,
       hasCover: false,
       bindex: 0,
+      isToDetail: false,
+      toRead: false,
     },
     onInit() {
       this.$app.$def.data.emitter.on("conn", (data) => {
@@ -190,6 +214,7 @@
       this.message = this.$app.$def.data.message;
     },
     onReady() {
+      this.$app.$def.sendLog("sensor " + Object.keys(sensor));
       setInterval(() => {
         this.count = this.count + 1;
       }, 1000);
@@ -218,7 +243,23 @@
         });
       }, 600);
     },
+    onShow() {
+      if (this.toRead) {
+        this.toRead = false;
+        this.changeBooks();
+        router.push({
+          uri: "/pages/list",
+          params: {
+            id: this.curBook.id,
+            name: this.curBook.name,
+            pages: this.curBook.pages,
+            chapterNum: this.curBook.chapters,
+          },
+        });
+      }
+    },
     toDirectory(book) {
+      if (this.isToDetail) return;
       router.push({
         uri: "/pages/list",
         params: {
@@ -282,6 +323,28 @@
       } else {
         this.hasCover = false;
       }
+    },
+    toDetail(item) {
+      this.isToDetail = true;
+      this.toRead = true;
+      this.curBook = item;
+      setTimeout(() => {
+        this.isToDetail = false;
+      }, 1000);
+      storage.get({
+        key: "cinfo_" + item.id,
+        success: (data) => {
+          let params = JSON.parse(data);
+          params.fromHome = true;
+          router.push({
+            uri: "/pages/read",
+            params,
+          });
+          this.$app.$def.sendLog(
+            "toDetail:" + JSON.stringify(JSON.parse(data)),
+          );
+        },
+      });
     },
   };
 </script>
