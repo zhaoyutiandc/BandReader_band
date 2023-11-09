@@ -115,7 +115,6 @@ export default {
     this.message = this.$app.$def.data.message
   },
   onReady() {
-    this.$app.$def.sendLog("sensor " + Object.keys(sensor))
     setInterval(() => {
       this.count = this.count + 1
     }, 1000)

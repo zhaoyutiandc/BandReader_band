@@ -163,13 +163,12 @@ export default {
   },
   onShow() {
     storage.get({
-      key: 'cinfo_' + this.id,
+      key: `chapter_${this.id}`,
       success: (data) => {
         try {
-          let cinfo = JSON.parse(data)
-          this.$app.$def.sendLog('onShow:' + JSON.stringify(cinfo))
-          if (Number(cinfo.index) !== Number(this.curChapter)) {
-            this.curChapter = Number(cinfo.index)
+          this.$app.$def.sendLog('onShow:' + data)
+          if (Number(data) !== Number(this.curChapter)) {
+            this.curChapter = Number(data)
             this.toChapter(this.curChapter)
           }
         }catch (e) {
@@ -197,6 +196,7 @@ export default {
         try {
           obj = JSON.parse(item)
         } catch (e) {
+          this.$app.$def.sendLog('chunkToObjs err raw=' + item + ' e: ' + e.toString())
         }
         return obj
       }).filter(item => {
@@ -229,8 +229,9 @@ export default {
           this.chunk2 = this.chunkToObjs(chunks[chunkIndex])
         }
         this.wait = true
+        this.$app.$def.sendLog('chunkToObjs end---')
         this.top = 0
-        this.delay(1000).then(() => {
+        this.delay(1700).then(() => {
           this.$element(`c-${this.curChapter}`).getBoundingClientRect({
             success: (data) => {
               this.$app.$def.sendLog('to chapter success ' + JSON.stringify({id: `c-${this.curChapter}`, ...data}))
@@ -242,7 +243,7 @@ export default {
       }else {
         this.wait = true
         this.top = 0
-        this.delay().then(()=>{
+        this.delay(300).then(()=>{
           this.$element(`c-${this.curChapter}`).getBoundingClientRect({
             success: (data) => {
               this.$app.$def.sendLog('to chapter success ' + JSON.stringify({id: `c-${this.curChapter}`, ...data}))
@@ -252,8 +253,14 @@ export default {
           })
         })
       }
+      setTimeout(()=>{
+        this.wait = false
+      },1500)
     } catch (e) {
       this.$app.$def.sendLog('to chapter error ' + e)
+      setTimeout(()=>{
+        this.wait = false
+      },1500)
     }
   },
   onSwipe({direction}) {

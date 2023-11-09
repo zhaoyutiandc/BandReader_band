@@ -6,6 +6,7 @@
     import mitt from 'mitt'
     import brightness from '@system.brightness'
     import sensor from '@system.sensor'
+
     let counter = 0
     let tempList = []
     let writeLock
@@ -73,6 +74,7 @@
                         that.data.config = JSON.parse(data)
                         that.data.config.auto = that.data.config.auto ? that.data.config.auto : false
                         that.data.config.size = that.data.config.size ? that.data.config.size : 54
+                        that.data.config.color = that.data.config.color ? that.data.config.color : 255
                         that.data.config.autoTime = that.data.config.autoTime ? that.data.config.autoTime : 6
                         that.data.config.next = false
                         that.data.config.bright = that.data.config.bright ? that.data.config.bright : false
@@ -195,8 +197,8 @@
                 append,
                 success: function () {
                     // that.sendLog(`save listInfo ${bid} ${list.length}`)
-                    if (Boolean(end)){
-                        that.updateBook({id: bid, list:true})
+                    if (Boolean(end)) {
+                        that.updateBook({id: bid, list: true})
                     }
                     tempList = []
                 },
@@ -233,18 +235,21 @@
             })
         },
         sendLog(msg) {
-            this.data.conn.send({
-                data: {
-                    data: JSON.stringify({
-                        type: 'log',
-                        content: String(msg)
-                    })
-                },
-                success: () => {
-                },
-                fail: ({data, code}) => {
-                }
-            })
+            if (!this.data.config.log) {
+            } else {
+                this.data.conn.send({
+                    data: {
+                        data: JSON.stringify({
+                            type: 'log',
+                            content: String(msg)
+                        })
+                    },
+                    success: () => {
+                    },
+                    fail: ({data, code}) => {
+                    }
+                })
+            }
         },
         updateBook(content) {
             // this.data.emitter.emit('log', `updateBook ${Object.keys(content)}`)
@@ -431,7 +436,9 @@
                 pin: true,
                 click: true,
                 bright: false,
-                size: 54
+                size: 54,
+                color: 255,
+                log: false
             },
             next: false,
         }

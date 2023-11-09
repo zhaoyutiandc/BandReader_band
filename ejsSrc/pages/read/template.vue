@@ -1,15 +1,17 @@
 <template>
   <div id="page" class="demo-page" @longpress="stop">
-    <div v-if="pin" class="title">
-      <marquee scrollamount="{{24}}" style="flex: 1;" onclick="routeHome">{{ name }}</marquee>
-      <text style="width: 14px"></text>
-      <text>{{ time }}</text>
+    <div v-if="pin" id="pin" class="title" @swipe="pinSwipe">
+      <marquee scrollamount="{{24}}" loop="{{1}}" style="flex: 1;color: rgb({{color}},{{color}},{{color}});" onclick="routeHome">
+        {{ name }}
+      </marquee>
+      <text style="width: 14px;color: rgb({{color}},{{color}},{{color}});"></text>
+      <text style="color: rgb({{color}},{{color}},{{color}});">{{ time }}</text>
     </div>
     <text v-if="pin"
           style="height: 2px;width:100%;background-color: {{auto?'#67C23A':'#9E9E9E'}};margin-bottom: 16px"></text>
     <div style="width: 100%">
       <text style="font-size: 1px;color: black">{{ config }}</text>
-      <text style="font-size: 1px;color: black">{{ top }}</text>
+      <text style="font-size: 1px">{{ top }}</text>
       <text style="font-size: 1px;color: black">{{ bottom }}</text>
       <text style="font-size: 1px;color: black">{{ wheight }}</text>
     </div>
@@ -29,13 +31,19 @@
       </div>-->
 
       <div id="page1" style="flex-direction: column;width: 100%;flex-shrink: 0;">
-        <div for="{{page1.item}}" class="item">
-          <text style="font-size: {{size}}px;flex-shrink: 0;width: 100%">{{ $item }}</text>
+        <div for="{{(index, value) in  page1.item}}" class="item">
+          <text id="line-{{index}}"
+                style="font-size: {{size}}px;color: rgb({{color}},{{color}},{{color}});flex-shrink: 0;width: 100%">
+            {{ value }}
+          </text>
         </div>
       </div>
       <div id="page2" style="flex-direction: column;width: 100%;flex-shrink: 0">
-        <div for="{{page2.item}}" class="item">
-          <text style="font-size: {{size}}px;flex-shrink: 0;width: 100%">{{ $item }}</text>
+        <div for="{{(index, value) in  page2.item}}" class="item">
+          <text id="line-{{index + 10}}"
+                style="font-size: {{size}}px;color: rgb({{color}},{{color}},{{color}});flex-shrink: 0;width: 100%">
+            {{ value }}
+          </text>
         </div>
       </div>
     </scroll>
@@ -56,6 +64,8 @@ import storage from '@system.storage'
 import file from '@system.file'
 import prompt from '@system.prompt'
 import {off} from "@service.push";
+import app from '@system.app'
+
 
 let rawLines = []
 let pages = []
@@ -70,6 +80,7 @@ export default {
     time: '00.00',
     pin: true,
     size: 54,
+    color: 255,
     show: false,
     auto: false,
     index: 0,
@@ -79,6 +90,7 @@ export default {
     init: false,
     h1: 0,
     wheight: 0,
+    pinHeight: 0,
     sheight: 0,
     last: false,
     page1: {},
@@ -103,11 +115,30 @@ export default {
 
   },
   onShow() {
+    try {
+      clearInterval(timer)
+    } catch (e) {
+
+    }
+    this.setTime()
+    timer = setInterval(() => {
+      this.setTime()
+    }, 1000 * 60)
+
     this.$element('scroll')
         .getBoundingClientRect({
           success: (info) => {
             let {height} = info
             this.wheight = height
+          }
+        })
+    this.$element('pin')
+        .getBoundingClientRect({
+          success: (info) => {
+            let {height} = info
+            /*prompt.showToast({
+              message: 'pin height ' + height
+            })*/
           }
         })
     this.config = {...this.$app.$def.data.config}
@@ -149,6 +180,7 @@ export default {
 
     //size start
     let configSize = this.config.size || 54
+    this.color = this.config.color || 255
     let isPin = this.pin
     this.pin = this.$app.$def.data.config.pin
     if ((isPin !== this.pin) && this.init) {
@@ -170,13 +202,14 @@ export default {
     //size end
   },
   onReady() {
-    this.setTime()
-    timer = setInterval(() => {
-      this.setTime()
-    }, 1000 * 60)
     timer2 = setInterval(() => {
       this.count = this.count + 1
     }, 1000)
+
+    storage.set({
+      key: `chapter_${this.bid}`,
+      value: String(this.index),
+    })
 
     this.$app.$def.updateBook({
       id: Number(this.bid),
@@ -381,8 +414,14 @@ export default {
     }
   },
   next() {
-    this.$app.$def.sendLog("wheight + " + this.wheight)
-    this.top = (offset || 0) + this.wheight - this.config.size
+    this.$app.$def.sendLog("next() " + JSON.stringify({wheight: this.wheight, size: this.config.size, offset}))
+    this.top = (offset || 0) + Number(this.wheight)
+    let pinHeight = this.pin ? 57 : 0
+    let sub = Number(this.top) % this.size
+    if (sub < Number(this.size)) {
+      this.top = Number(this.top) - (Number(this.size) - 16)
+    }
+    this.$app.$def.sendLog("next() " + JSON.stringify({sub, size: this.size}))
   },
   stop() {
     this.press = true
@@ -424,55 +463,55 @@ export default {
         message: '已经是最后一章了',
         duration: 2000
       })
-      return
+    } else {
+      let nextChapter = this.$app.$def.data.chapters[Number(this.index) + 1]
+      nextChapter = JSON.parse(nextChapter)
+      this.$app.$def.data.next = true
+      let uri = `internal://files/reader/${this.bid}/${nextChapter.paging}/${nextChapter.index}_${nextChapter.title}.txt`
+      this.$app.$def.sendLog(["next chapter ", uri])
+      storage.set({
+        key: `doffset_${that.bid}`,
+        value: JSON.stringify({offset: 0, index: that.index}),
+        success: (data) => {
+          this.$app.$def.sendLog('doffset_ success')
+          storage.set({
+            key: `chapter_${this.bid}`,
+            value: String(nextChapter.index),
+            success: (data) => {
+              this.$app.$def.sendLog('chapter_ success')
+              storage.set({
+                key: 'cinfo_' + that.bid,
+                value: JSON.stringify({
+                  index: Number(nextChapter.index),
+                  uri,
+                  name: nextChapter.title,
+                  bid: this.bid,
+                  bname: this.bname,
+                  chapterNum: this.chapterNum
+                }),
+                success: () => {
+                  this.$app.$def.sendLog('cinfo_ success')
+                  router.replace({
+                    uri: '/pages/read',
+                    params: {
+                      index: Number(nextChapter.index),
+                      uri,
+                      name: nextChapter.title,
+                      bid: this.bid,
+                      bname: this.bname,
+                      chapterNum: this.chapterNum
+                    }
+                  })
+                }
+              })
+            },
+          })
+        },
+      })
+      this.$app.$def.data.emitter.emit('next', nextChapter.index)
+      // this.$app.$def.data.next = true
+      // this.saveOffset(true)
     }
-    let nextChapter = this.$app.$def.data.chapters[Number(this.index) + 1]
-    nextChapter = JSON.parse(nextChapter)
-    this.$app.$def.data.next = true
-    let uri = `internal://files/reader/${this.bid}/${nextChapter.paging}/${nextChapter.index}_${nextChapter.title}.txt`
-    this.$app.$def.sendLog(["next chapter ", uri])
-    storage.set({
-      key: `doffset_${that.bid}`,
-      value: JSON.stringify({offset: 0, index: that.index}),
-      success: (data) => {
-        this.$app.$def.sendLog('doffset_ success')
-        storage.set({
-          key: `chapter_${this.id}`,
-          value: String(nextChapter.index),
-          success: (data) => {
-            this.$app.$def.sendLog('chapter_ success')
-            storage.set({
-              key: 'cinfo_' + that.bid,
-              value: JSON.stringify({
-                index: Number(nextChapter.index),
-                uri,
-                name: nextChapter.title,
-                bid: this.bid,
-                bname: this.bname,
-                chapterNum: this.chapterNum
-              }),
-              success: () => {
-                this.$app.$def.sendLog('cinfo_ success')
-                router.replace({
-                  uri: '/pages/read',
-                  params: {
-                    index: Number(nextChapter.index),
-                    uri,
-                    name: nextChapter.title,
-                    bid: this.bid,
-                    bname: this.bname,
-                    chapterNum: this.chapterNum
-                  }
-                })
-              }
-            })
-          },
-        })
-      },
-    })
-    this.$app.$def.data.emitter.emit('next', nextChapter.index)
-    // this.$app.$def.data.next = true
-    // this.saveOffset(true)
   },
   onSwipe({direction}) {
     if (direction === 'right') {
@@ -483,6 +522,11 @@ export default {
       router.push({
         uri: '/pages/config',
       })
+    }
+  },
+  pinSwipe({direction}) {
+    if (direction === 'right') {
+      app.terminate()
     }
   },
   splitText() {

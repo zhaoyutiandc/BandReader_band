@@ -2,13 +2,20 @@
   <div class="page-cmpt" style="padding-bottom: 24px">
     <slot name="topBar"></slot>
     <text style="font-size: 1px">{{count}}</text>
+    <text style="font-size: 1px">{{color}}</text>
     <scroll style="width: 100%;flex: 1;flex-direction: column" scroll-y="{{true}}" scroll-top="{{top}}">
       <div class="item-card" style="justify-content: space-between;align-items: center">
-        <div style="width: 100%;flex-direction: column">
-          <text>字体大小 {{ size }}</text>
-          <slider style="margin-top: 24px;margin-bottom: 34px;width: 100%" min="34" max="64" step="1" value="{{ initialSliderValue }}"
+        <div style="width: 100%;flex-direction: row;align-items: center">
+          <text style="color: white;">字号 {{ size }}</text>
+          <slider style="flex: 1" min="34" max="64" step="1" value="{{ initialSliderValue }}"
                   onchange="onSliderChange"></slider>
-          <text style="color: white;font-size: {{size}};text-align: center">测试大小</text>
+        </div>
+      </div>
+      <div class="item-card" style="justify-content: space-between;align-items: center">
+        <div style="width: 100%;flex-direction: row;align-items: center">
+          <text style="color: rgb({{color}},{{color}},{{color}});">颜色 {{ color }}</text>
+          <slider style="flex: 1" min="100" max="255" step="1" value="{{ initialColorValue }}"
+                  onchange="onColorChange"></slider>
         </div>
       </div>
       <div class="item-card" style="height: 120px;justify-content: space-between;align-items: center">
@@ -34,6 +41,10 @@
         <text>点击翻页</text>
         <switch checked="{{ config.click }}" style="height: 48px" @change="onClickChange"></switch>
       </div>
+      <div class="item-card" style="height: 120px;justify-content: space-between;align-items: center">
+        <text>日志</text>
+        <switch checked="{{ config.log }}" style="height: 48px" @change="onLogChange"></switch>
+      </div>
     </scroll>
   </div>
 </template>
@@ -45,12 +56,14 @@ export default {
   private: {
     pageTitle: '设置',
     initialSliderValue: 54,
+    initialColorValue: -1,
     sliderValue: 54,
     initialTimeValue:6,
     autoTime:6,
     top: 0,
     count: 0,
     size: 54,
+    color: -1,
     bright: false,
     config: {
       auto: false,
@@ -65,6 +78,10 @@ export default {
     this.bright = this.config.bright || false
     this.initialSliderValue = this.$app.$def.data.config.size || 54
     this.size = this.initialSliderValue
+    setTimeout(()=>{
+      this.initialColorValue = this.$app.$def.data.config.color || 255
+      this.color = this.initialColorValue
+    },100)
   },
   onReady() {
     setInterval(() => {
@@ -87,6 +104,9 @@ export default {
       }
     })
   },
+  onShow(){
+
+  },
   onBackPress() {
     return true
   },
@@ -97,6 +117,10 @@ export default {
   onClickChange(e) {
     this.config.click = e.checked
     this.$app.$def.changeConfig(this.config)
+  },
+  onLogChange(e){
+    this.config.log = e.checked
+    this.$app.$def.data.log = e.checked
   },
   onAutoChange(e) {
     this.config.auto = e.checked
@@ -109,7 +133,12 @@ export default {
     this.size = e.progress
     this.sliderValue = e.progress
     this.config.size = e.progress
-    this.$app.$def.changeConfig(this.config)
+    // this.$app.$def.changeConfig(this.config)
+  },
+  onColorChange(e) {
+    this.color = e.progress > 255 ? 255 : e.progress
+    this.config.color = e.progress > 255 ? 255 : e.progress
+    // this.$app.$def.changeConfig(this.config)
   },
   onTimeChange(e) {
     this.autoTime = e.progress
@@ -124,6 +153,7 @@ export default {
     this.$app.$def.brightSwitch(e.checked)
   },
   back() {
+    this.$app.$def.changeConfig(this.config)
     router.back()
   },
 }
