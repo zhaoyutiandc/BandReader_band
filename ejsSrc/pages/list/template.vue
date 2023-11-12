@@ -171,7 +171,7 @@ export default {
             this.curChapter = Number(data)
             this.toChapter(this.curChapter)
           }
-        }catch (e) {
+        } catch (e) {
 
         }
       }
@@ -219,6 +219,7 @@ export default {
         chunkLength: chunks.length
       }))
       if (otherChunk || this.chunk1.item === undefined) {
+        this.top = 0
         // 判断是不是最后一个chunk
         if (!last) {
           this.chunk1 = this.chunkToObjs(chunks[chunkIndex])
@@ -230,8 +231,8 @@ export default {
         }
         this.wait = true
         this.$app.$def.sendLog('chunkToObjs end---')
-        this.top = 0
-        this.delay(1700).then(() => {
+        this.delay(1400).then(async () => {
+          await this.delay(100)
           this.$element(`c-${this.curChapter}`).getBoundingClientRect({
             success: (data) => {
               this.$app.$def.sendLog('to chapter success ' + JSON.stringify({id: `c-${this.curChapter}`, ...data}))
@@ -240,27 +241,30 @@ export default {
             }
           })
         })
-      }else {
+      } else {
         this.wait = true
-        this.top = 0
-        this.delay(300).then(()=>{
-          this.$element(`c-${this.curChapter}`).getBoundingClientRect({
-            success: (data) => {
-              this.$app.$def.sendLog('to chapter success ' + JSON.stringify({id: `c-${this.curChapter}`, ...data}))
-              this.top = data.top - data.height
-              this.wait = false
-            }
+        this.delay().then(() => {
+          this.top = 0
+        }).then(() => {
+          this.delay().then(() => {
+            this.$element(`c-${this.curChapter}`).getBoundingClientRect({
+              success: (data) => {
+                this.$app.$def.sendLog('to chapter success ' + JSON.stringify({id: `c-${this.curChapter}`, ...data}))
+                this.top = data.top - data.height
+                this.wait = false
+              }
+            })
           })
         })
       }
-      setTimeout(()=>{
+      setTimeout(() => {
         this.wait = false
-      },1500)
+      }, 1500)
     } catch (e) {
       this.$app.$def.sendLog('to chapter error ' + e)
-      setTimeout(()=>{
+      setTimeout(() => {
         this.wait = false
-      },1500)
+      }, 1500)
     }
   },
   onSwipe({direction}) {

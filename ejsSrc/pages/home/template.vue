@@ -4,8 +4,9 @@
     <swiper id="swiper" v-if="books.length>0" class="swiper" @change="swipe">
       <div for="{{books}}" class="item">
         <stack style="width: 100%;height: 100%">
-          <div style="padding: 100px 16px 16px 16px;flex: 1;width: 100%;height: 100%;flex-direction: column;justify-content: flex-start;align-items: flex-start">
-            <div class="main-card" style="flex-direction: column;height: 440px"  onclick="toDirectory($item)" >
+          <div
+              style="padding: 100px 16px 16px 16px;flex: 1;width: 100%;height: 100%;flex-direction: column;justify-content: flex-start;align-items: flex-start">
+            <div class="main-card" style="flex-direction: column;height: 440px" onclick="toDirectory($item)">
               <stack style="width: 100%;height: 100%">
                 <div style="justify-content: flex-end;align-items: flex-end">
                   <stack if="{{$item.cover&&$item.cover.length>0}}" style="width: 260px;height: 360px">
@@ -19,7 +20,9 @@
                     <text class="book-name">{{ $item.name }}</text>
                   </div>
                   <text class="" style="font-size: 44px;width: 100%;">共{{ $item.chapters }}章</text>
-                  <div class="" style="font-size: 44px;width: 100%;color: rgb(163,199,218);flex-direction: row;flex-wrap:wrap;padding: 16px 0px 0px 0px" @click="toDetail($item)">
+                  <div class=""
+                       style="font-size: 44px;width: 100%;color: rgb(163,199,218);flex-direction: row;flex-wrap:wrap;padding: 16px 0px 0px 0px"
+                       @click="toDetail($item)">
                     <text style="margin-right: 16px">当前:{{ $item.current || 0 }}</text>
                     <text>继续阅读</text>
                   </div>
@@ -83,12 +86,13 @@ import app from '@system.app'
 import storage from "@system.storage";
 import prompt from '@system.prompt'
 import sensor from '@system.sensor'
+import file from '@system.file'
 
 export default {
   private: {
     pageTitle: '首页',
     books: [],
-    curBook:{},
+    curBook: {},
     message: 'message',
     conn: {},
     evt: 'evt',
@@ -103,8 +107,8 @@ export default {
     count: 0,
     hasCover: false,
     bindex: 0,
-    isToDetail:false,
-    toRead:false,
+    isToDetail: false,
+    toRead: false,
   },
   onInit() {
     this.$app.$def.data.emitter.on('conn', (data) => {
@@ -143,13 +147,18 @@ export default {
       })
     }, 600)
   },
-  onShow(){
-    if (this.toRead){
+  onShow() {
+    if (this.toRead) {
       this.toRead = false
       this.changeBooks()
       router.push({
         uri: '/pages/list',
-        params: {id: this.curBook.id, name: this.curBook.name, pages: this.curBook.pages,chapterNum:this.curBook.chapters}
+        params: {
+          id: this.curBook.id,
+          name: this.curBook.name,
+          pages: this.curBook.pages,
+          chapterNum: this.curBook.chapters
+        }
       })
     }
   },
@@ -157,7 +166,7 @@ export default {
     if (this.isToDetail) return
     router.push({
       uri: '/pages/list',
-      params: {id: book.id, name: book.name, pages: book.pages,chapterNum:book.chapters}
+      params: {id: book.id, name: book.name, pages: book.pages, chapterNum: book.chapters}
     })
   },
   changeBooks() {
@@ -214,23 +223,30 @@ export default {
       this.hasCover = false
     }
   },
-  toDetail(item){
+  toDetail(item) {
     this.isToDetail = true
     this.toRead = true
     this.curBook = item
-    setTimeout(()=>{
+    setTimeout(() => {
       this.isToDetail = false
-    },1000)
+    }, 1000)
     storage.get({
       key: 'cinfo_' + item.id,
       success: (data) => {
         let params = JSON.parse(data)
         params.fromHome = true
-        router.push({
-          uri: '/pages/read',
-          params
+        file.readText({
+          uri: `internal://files/reader/${params.bid}/list.txt`,
+          success: (data) => {
+            this.$app.$def.data.chapters = data.text.split('\n')
+            router.push({
+              uri: '/pages/read',
+              params
+            })
+            this.$app.$def.sendLog('toDetail:' + JSON.stringify(JSON.parse(data)))
+          }
         })
-        this.$app.$def.sendLog('toDetail:' + JSON.stringify(JSON.parse(data)))
+
       }
     })
   }

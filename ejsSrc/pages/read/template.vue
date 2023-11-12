@@ -1,11 +1,11 @@
 <template>
   <div id="page" class="demo-page" @longpress="stop">
     <div v-if="pin" id="pin" class="title" @swipe="pinSwipe">
-      <marquee scrollamount="{{24}}" loop="{{1}}" style="flex: 1;color: rgb({{color}},{{color}},{{color}});" onclick="routeHome">
+      <marquee scrollamount="{{24}}" loop="{{1}}" style="font-size: 38px;flex: 1;color: rgb({{color}},{{color}},{{color}});" onclick="routeHome">
         {{ name }}
       </marquee>
       <text style="width: 14px;color: rgb({{color}},{{color}},{{color}});"></text>
-      <text style="color: rgb({{color}},{{color}},{{color}});">{{ time }}</text>
+      <text style="font-size: 38px;color: rgb({{color}},{{color}},{{color}});">{{ time }}</text>
     </div>
     <text v-if="pin"
           style="height: 2px;width:100%;background-color: {{auto?'#67C23A':'#9E9E9E'}};margin-bottom: 16px"></text>
@@ -132,21 +132,12 @@ export default {
             this.wheight = height
           }
         })
-    this.$element('pin')
-        .getBoundingClientRect({
-          success: (info) => {
-            let {height} = info
-            /*prompt.showToast({
-              message: 'pin height ' + height
-            })*/
-          }
-        })
     this.config = {...this.$app.$def.data.config}
     this.$app.$def.sendLog("config " + JSON.stringify(this.config))
     this.auto = this.config.auto
     if (this.config.auto) {
       prompt.showToast({
-        message: '长按停止自动翻页' + this.config.autoTime + '秒',
+        message: '长按停止自动翻页',
         duration: 2000
       })
       try {
@@ -248,6 +239,9 @@ export default {
     let date = new Date()
     let h = date.getHours()
     let m = date.getMinutes() + 1
+    if (m === 60) {
+      m = 0
+    }
     this.time = `${h < 10 ? '0' + h : h}:${m < 10 ? '0' + m : m}`
   },
   async initPage() {
@@ -264,8 +258,12 @@ export default {
         } catch (e) {
           console.log(e)
         }
+        that.$app.$def.sendLog("判断pageInfo" + JSON.stringify({infoIndex:Number(pageInfo.index),cindex:Number(this.index)}))
         if (Number(pageInfo.index) === Number(this.index)) {
+          that.$app.$def.sendLog("has pageInfo:" + JSON.stringify(pageInfo))
           this.cpage = Number(pageInfo.page) || 0
+        }else {
+          this.changePage(0)
         }
         this.page1 = pages[this.cpage]
         this.page2 = pages[this.cpage + 1] || []
@@ -317,6 +315,7 @@ export default {
   changePage(page) {
     this.cpage = page
     const that = this
+    that.$app.$def.sendLog(["触发 changePage",this.time,this.index,page])
     storage.set({
       key: `cpage_${this.bid}`,
       value: JSON.stringify({
@@ -324,14 +323,14 @@ export default {
         page: page
       }),
       success: function (data) {
-
+        that.$app.$def.sendLog(["cpage_ success",this.index,page])
       },
       fail: function (data, code) {
-        console.log(`handling fail, code = ${code}`)
+        that.$app.$def.sendLog(["cpage_ fail",this.index,page])
       }
     })
   },
-  saveOffset(back) {
+  saveOffset(back = false,exit = false) {
     const that = this
     storage.set({
       key: `doffset_${that.bid}`,
@@ -341,6 +340,11 @@ export default {
           //sendlog
           that.$app.$def.sendLog("back:" + offset)
           router.back()
+        }
+        if (exit) {
+          //sendlog
+          that.$app.$def.sendLog("exit:" + offset)
+          app.terminate()
         }
       },
       fail: function (data, code) {
@@ -419,7 +423,7 @@ export default {
     let pinHeight = this.pin ? 57 : 0
     let sub = Number(this.top) % this.size
     if (sub < Number(this.size)) {
-      this.top = Number(this.top) - (Number(this.size) - 16)
+      this.top = Number(this.top) - (Number(this.size))
     }
     this.$app.$def.sendLog("next() " + JSON.stringify({sub, size: this.size}))
   },
@@ -457,7 +461,7 @@ export default {
   nextChapter() {
     //sendlog
     const that = this
-    // this.$app.$def.sendLog(["next chapter ", this.index, this.chapterNum])
+    this.$app.$def.sendLog(["to next chapter ", this.index, this.chapterNum])
     if (Number(this.index) === (Number(this.chapterNum) - 1)) {
       prompt.showToast({
         message: '已经是最后一章了',
@@ -465,6 +469,8 @@ export default {
       })
     } else {
       let nextChapter = this.$app.$def.data.chapters[Number(this.index) + 1]
+      this.$app.$def.sendLog(["next chapter ", this.index, this.chapterNum])
+
       nextChapter = JSON.parse(nextChapter)
       this.$app.$def.data.next = true
       let uri = `internal://files/reader/${this.bid}/${nextChapter.paging}/${nextChapter.index}_${nextChapter.title}.txt`
@@ -526,7 +532,7 @@ export default {
   },
   pinSwipe({direction}) {
     if (direction === 'right') {
-      app.terminate()
+      this.saveOffset(false, true)
     }
   },
   splitText() {
@@ -539,7 +545,6 @@ export default {
     file.readText({
       uri: this.uri,
       success: function (data) {
-        console.log('text: ' + data.text)
 
         function splitLength(text, length) {
           const result = [];
@@ -553,10 +558,11 @@ export default {
         }
 
         let tempLines = data.text.split('\n')
+        that.$app.$def.sendLog('read text: ' + JSON.stringify({length:data.text.length,first:tempLines[0]}))
         if (tempLines.length < 2) {
           tempLines = data.text.split('\r')
         }
-        tempLines = tempLines.splice(/ {4,}/g)
+        // tempLines = tempLines.splice(/ {4,}/g)
         tempLines = tempLines.filter(it => it.trim().length > 0)
 
         tempLines.forEach((line) => {

@@ -79,6 +79,7 @@
                         that.data.config.next = false
                         that.data.config.bright = that.data.config.bright ? that.data.config.bright : false
                         that.data.config.click = String(that.data.config.click) === 'true'
+                        that.data.config.log = false
                         that.brightSwitch(that.data.config.bright)
                     } else {
                         that.data.config = {

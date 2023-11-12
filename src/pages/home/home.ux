@@ -184,6 +184,7 @@
   import storage from "@system.storage";
   import prompt from "@system.prompt";
   import sensor from "@system.sensor";
+  import file from "@system.file";
   export default {
     private: {
       pageTitle: "首页",
@@ -335,13 +336,19 @@
         success: (data) => {
           let params = JSON.parse(data);
           params.fromHome = true;
-          router.push({
-            uri: "/pages/read",
-            params,
+          file.readText({
+            uri: `internal://files/reader/${params.bid}/list.txt`,
+            success: (data) => {
+              this.$app.$def.data.chapters = data.text.split("\n");
+              router.push({
+                uri: "/pages/read",
+                params,
+              });
+              this.$app.$def.sendLog(
+                "toDetail:" + JSON.stringify(JSON.parse(data)),
+              );
+            },
           });
-          this.$app.$def.sendLog(
-            "toDetail:" + JSON.stringify(JSON.parse(data)),
-          );
         },
       });
     },
