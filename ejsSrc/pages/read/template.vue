@@ -241,6 +241,7 @@ export default {
     let m = date.getMinutes() + 1
     if (m === 60) {
       m = 0
+      h = h + 1
     }
     this.time = `${h < 10 ? '0' + h : h}:${m < 10 ? '0' + m : m}`
   },
@@ -461,6 +462,10 @@ export default {
   nextChapter() {
     //sendlog
     const that = this
+    prompt.showToast({
+      message: '正在加载下一章 ' + this.$app.$def.data.chapters.length,
+      duration: 2000
+    })
     this.$app.$def.sendLog(["to next chapter ", this.index, this.chapterNum])
     if (Number(this.index) === (Number(this.chapterNum) - 1)) {
       prompt.showToast({
