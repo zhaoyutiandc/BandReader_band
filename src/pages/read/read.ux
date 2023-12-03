@@ -249,6 +249,7 @@
       let m = date.getMinutes() + 1;
       if (m === 60) {
         m = 0;
+        h = h + 1;
       }
       this.time = `${h < 10 ? "0" + h : h}:${m < 10 ? "0" + m : m}`;
     },

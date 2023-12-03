@@ -64,6 +64,11 @@
                         that.listInfo(content).then()
                     }
                 }
+                if (type === "test_chunk") {
+                    if (content) {
+                        that.testChunk(content).then()
+                    }
+                }
                 counter++
                 this.data.emitter.emit('conn', type + ' ' + counter)
             }
@@ -209,6 +214,30 @@
                 }
             })
         },
+        async testChunk(content) {
+            const that = this
+            prompt.showToast({
+                message: `testChunk ${JSON.stringify({index: content.index, length: content.content.length})}`,
+                duration: 2000
+            })
+            let uri = `internal://files/reader/test.txt`
+            file.writeText({
+                uri: uri,
+                text: content,
+                append: false,
+                success: function () {
+                    prompt.showToast({
+                        message: `save testChunk ${content.index}`,
+                        duration: 2000
+                    })
+                    // that.sendLog(`save testChunk ${content.index}`)
+                    // that.sendTestChunk(`save testChunk ${content.length}`)
+                },
+                fail: function (data, code) {
+                    that.sendLog(`save testChunk fail ${content.length}`)
+                }
+            })
+        },
         bookInfo() {
             this.data.conn.send({
                 data: {
@@ -232,6 +261,16 @@
                     setTimeout(()=>{
                         this.data.emitter.emit('book_info')
                     },2000)*/
+                }
+            })
+        },
+        sendTestChunk(msg) {
+            this.data.conn.send({
+                data: {
+                    data: JSON.stringify({
+                        type: 'test_chunk',
+                        content: msg
+                    })
                 }
             })
         },

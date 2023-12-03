@@ -1,0 +1,12 @@
+<template>
+    <div>{{text}}</div>
+</template>
+
+<script>
+    export default {
+        private: {
+            name: 'test',
+            text: 'test',
+        },
+    }
+</script>
