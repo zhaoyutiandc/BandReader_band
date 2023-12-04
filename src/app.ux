@@ -216,22 +216,14 @@
         },
         async testChunk(content) {
             const that = this
-            prompt.showToast({
-                message: `testChunk ${JSON.stringify({index: content.index, length: content.content.length})}`,
-                duration: 2000
-            })
             let uri = `internal://files/reader/test.txt`
             file.writeText({
                 uri: uri,
-                text: content,
+                text: JSON.stringify(content),
                 append: false,
                 success: function () {
-                    prompt.showToast({
-                        message: `save testChunk ${content.index}`,
-                        duration: 2000
-                    })
                     // that.sendLog(`save testChunk ${content.index}`)
-                    // that.sendTestChunk(`save testChunk ${content.length}`)
+                    that.sendTestChunk(String(content).length)
                 },
                 fail: function (data, code) {
                     that.sendLog(`save testChunk fail ${content.length}`)
@@ -269,6 +261,16 @@
                 data: {
                     data: JSON.stringify({
                         type: 'test_chunk',
+                        content: msg
+                    })
+                }
+            })
+        },
+        sendChapterSaved(msg) {
+            this.data.conn.send({
+                data: {
+                    data: JSON.stringify({
+                        type: 'chapter_saved',
                         content: msg
                     })
                 }
@@ -415,17 +417,19 @@
             let {index, bookId, name, paging, content, first} = chapter
             let that = this
             name = name.trim()
+            that.sendTestChunk(index)
             file.writeText({
                 uri: `internal://files/reader/${bookId}/${paging}/${index}_${name}.txt`,
                 text: content,
                 append: !Boolean(first),
                 success: function () {
-                    console.log('handling success')
-                    that.data.emitter.emit('conn', 'chapter save' + counter++)
+                    // console.log('handling success')
+                    that.sendChapterSaved(index)
+                    // that.data.emitter.emit('conn', 'chapter save' + counter++)
                 },
                 fail: function (data, code) {
                     console.log(`handling fail, code = ${code}`)
-                    that.data.emitter.emit('conn', 'chapter save err' + counter++)
+                    // that.data.emitter.emit('conn', 'chapter save err' + counter++)
                 }
             })
         },
