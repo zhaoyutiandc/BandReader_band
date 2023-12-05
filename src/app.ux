@@ -219,11 +219,11 @@
             let uri = `internal://files/reader/test.txt`
             file.writeText({
                 uri: uri,
-                text: JSON.stringify(content),
+                text: content.content,
                 append: false,
                 success: function () {
                     // that.sendLog(`save testChunk ${content.index}`)
-                    that.sendTestChunk(String(content).length)
+                    that.sendTestChunk(content.content.length + ' ' + content.content.substring(0, 10))
                 },
                 fail: function (data, code) {
                     that.sendLog(`save testChunk fail ${content.length}`)
