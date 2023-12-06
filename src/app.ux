@@ -64,11 +64,6 @@
                         that.listInfo(content).then()
                     }
                 }
-                if (type === "test_chunk") {
-                    if (content) {
-                        that.testChunk(content).then()
-                    }
-                }
                 counter++
                 this.data.emitter.emit('conn', type + ' ' + counter)
             }
@@ -214,22 +209,6 @@
                 }
             })
         },
-        async testChunk(content) {
-            const that = this
-            let uri = `internal://files/reader/test.txt`
-            file.writeText({
-                uri: uri,
-                text: JSON.stringify(content),
-                append: false,
-                success: function () {
-                    // that.sendLog(`save testChunk ${content.index}`)
-                    that.sendTestChunk(String(content).length)
-                },
-                fail: function (data, code) {
-                    that.sendLog(`save testChunk fail ${content.length}`)
-                }
-            })
-        },
         bookInfo() {
             this.data.conn.send({
                 data: {
@@ -256,22 +235,19 @@
                 }
             })
         },
-        sendTestChunk(msg) {
-            this.data.conn.send({
-                data: {
-                    data: JSON.stringify({
-                        type: 'test_chunk',
-                        content: msg
-                    })
-                }
-            })
-        },
-        sendChapterSaved(msg) {
+        sendChapterSaved(index) {
+            /*prompt.showToast({
+                message: `向手机发送${JSON.stringify({
+                    type: 'chapter_saved',
+                    content: String(index)
+                })}`,
+                duration: 2000
+            })*/
             this.data.conn.send({
                 data: {
                     data: JSON.stringify({
                         type: 'chapter_saved',
-                        content: msg
+                        content: String(index)
                     })
                 }
             })
@@ -413,25 +389,47 @@
                 }
             })
         },
+        // chapterCache: "",
         saveChapter(chapter) {
-            let {index, bookId, name, paging, content, first} = chapter
-            let that = this
-            name = name.trim()
-            that.sendTestChunk(index)
-            file.writeText({
-                uri: `internal://files/reader/${bookId}/${paging}/${index}_${name}.txt`,
-                text: content,
-                append: !Boolean(first),
-                success: function () {
-                    // console.log('handling success')
-                    that.sendChapterSaved(index)
-                    // that.data.emitter.emit('conn', 'chapter save' + counter++)
-                },
-                fail: function (data, code) {
-                    console.log(`handling fail, code = ${code}`)
-                    // that.data.emitter.emit('conn', 'chapter save err' + counter++)
-                }
-            })
+            let {index, bookId, name, paging, content, first, last} = chapter
+            try {
+                let that = this
+                name = name.trim()
+
+                /*let fullContent = ""
+                if (!last) {
+                    this.chapterCache += content
+                    return
+                } else {
+                    fullContent = this.chapterCache + content
+                    this.chapterCache = ""
+                }*/
+                file.writeText({
+                    uri: `internal://files/reader/${bookId}/${paging}/${index}_${name}.txt`,
+                    text: content,
+                    append: !Boolean(first),
+                    success: function () {
+                        if (last) {
+                            /*prompt.showToast({
+                                message: `第${index}章已下载`,
+                                duration: 2000
+                            })*/
+                            that.sendChapterSaved(index)
+                        }
+                    },
+                    fail: function (data, code) {
+                        prompt.showToast({
+                            message: `第${index}章下载失败 ${code}`,
+                            duration: 2000
+                        })
+                    }
+                })
+            } catch (e) {
+                prompt.showToast({
+                    message: `接收chunk异常 ${index} ${name}`,
+                    duration: 2000
+                })
+            }
         },
         changeConfig(config) {
             this.data.config = config
