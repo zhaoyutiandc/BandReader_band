@@ -18,6 +18,7 @@
 
             this.data.emitter.on('del_book', this.delBook)
             this.data.emitter.on('update_book', this.updateBook)
+            this.data.emitter.on('chapter_saved', this.sendChapterSaved)
             // this.data.emitter.on('book_info', this.bookInfo)
 
             console.log('app created')
@@ -247,7 +248,8 @@
                 data: {
                     data: JSON.stringify({
                         type: 'chapter_saved',
-                        content: String(index)
+                        content: String(index),
+                        time: new Date().getTime()
                     })
                 }
             })
@@ -391,9 +393,9 @@
         },
         // chapterCache: "",
         saveChapter(chapter) {
+            let that = this
             let {index, bookId, name, paging, content, first, last} = chapter
             try {
-                let that = this
                 name = name.trim()
 
                 /*let fullContent = ""
@@ -410,11 +412,8 @@
                     append: !Boolean(first),
                     success: function () {
                         if (last) {
-                            /*prompt.showToast({
-                                message: `第${index}章已下载`,
-                                duration: 2000
-                            })*/
-                            that.sendChapterSaved(index)
+                            // that.sendChapterSaved(index)
+                            that.data.emitter.emit('chapter_saved',index)
                         }
                     },
                     fail: function (data, code) {
