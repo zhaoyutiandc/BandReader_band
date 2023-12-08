@@ -21,6 +21,7 @@
             this.data.emitter.on('del_book', this.delBook)
             this.data.emitter.on('update_book', this.updateBook)
             this.data.emitter.on('chapter_saved', this.sendChapterSaved)
+            this.data.emitter.on('chunk_saved', this.sendChunkSaved)
             // this.data.emitter.on('book_info', this.bookInfo)
 
             console.log('app created')
@@ -242,17 +243,21 @@
             })
         },
         sendChapterSaved(index) {
-            /*prompt.showToast({
-                message: `向手机发送${JSON.stringify({
-                    type: 'chapter_saved',
-                    content: String(index)
-                })}`,
-                duration: 2000
-            })*/
             this.data.conn.send({
                 data: {
                     data: JSON.stringify({
                         type: 'chapter_saved',
+                        content: String(index),
+                        time: new Date().getTime()
+                    })
+                }
+            })
+        },
+        sendChunkSaved(index) {
+            this.data.conn.send({
+                data: {
+                    data: JSON.stringify({
+                        type: 'chunk_saved',
                         content: String(index),
                         time: new Date().getTime()
                     })
@@ -416,6 +421,7 @@
                     text: content,
                     append: !Boolean(first),
                     success: function () {
+                        that.sendChunkSaved(index)
                         if (last) {
                             // that.sendChapterSaved(index)
                             that.data.emitter.emit('chapter_saved',index)
